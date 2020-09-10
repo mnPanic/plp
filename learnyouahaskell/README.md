@@ -116,3 +116,116 @@ decimos que es una *definition* o un *name*.
 
 In haskell lists are a **homogenous** data structure, they store several
 elements of *the same type*.
+
+Los `string` no son mas que `[Char]`. Y si `'a'` es un char, `"hola"` no es mas
+que syntactic sugar para la lista `['h', 'o', 'l', 'a']`.
+
+- `(++)`: Concatena dos listas
+  
+  ```haskell
+  > [1, 2, 3] ++ [4, 5, 6]
+  [1, 2, 3, 4, 5, 6]
+  ```
+
+- `(:)`: Cons operator. Concatena al principio de una lista.
+  
+  ```haskell
+  > 'A':" CAT"
+  "A CAT"
+  ```
+
+- `(!!)`: Para obtener el elemento i-esimo (comenzando de 0)
+
+  ```haskell
+  > [1, 2, 3, 4] !! 2
+  3
+  ```
+
+- `head`: Dada una lista retorna la cabeza (primer elemento)
+- `tail`: Dada una lista retorna la cola, todo menos la cabeza.
+- `last`: Retorna el ultimo elemento.
+- `init`: Retorna todo menos el ultimo.
+- `length`: Retorna la longitud de la lista
+- `null`: Chequea si esta vacia.
+- `reverse`: Invierte una lista
+
+#### Texas Ranges
+
+Por ejemplo, para hacer una lista que contenga los naturales del 1 al 20, se
+puede escribir `[1..20]`.
+
+#### Infinite lists
+
+Es mas elegante escribir `take 24 [13, 26..]` que `[13,26..24*13]` para obtener
+los primeros 24 multiplos de 13.
+
+Funciones que producen listas infinitas:
+
+- `cycle`: Repite una lista y la convierte en infinita
+
+  ```haskell
+  ghci> take 10 (cycle [1,2,3])  
+  [1,2,3,1,2,3,1,2,3,1]  
+  ghci> take 12 (cycle "LOL ")  
+  "LOL LOL LOL "
+  ```
+
+- `repeat` obtiene un elemento y produce una lista infinita de solo ese
+  elemento. Es equivalente a hacer cycle de un solo elemento.
+
+### Tuples
+
+No son homogeneos, pueden contener tipos diferentes.
+
+## Types and Typeclasses
+
+- Haskell tiene un sistema de tipado **estatico**, con lo cual el tipo de cada
+  expr se sabe en tiempo de compilacion.
+
+- Tiene **inferencia de tipos**, si escribimos un numero, no hay que decirle a
+  haskell que es un numero.
+
+Para examinar los tipos en GHCi se puede usar el comando `:t`, que dada una
+expresion dice su tipo.
+
+### Polimorphic functions
+
+Una funcion polimorfica es aquella que tiene *type variables*, es decir
+variables que pueden tomar valores de cualquier tipo.
+
+```haskell
+ghci> :t head
+head :: [a] -> a
+```
+
+### Typeclasses
+
+Son como interfaces. Si un tipo es parte de una typeclas, es porque soporta e
+implementa el comportamiento que esta describe.
+
+```haskell
+ghci> :t (==)  
+(==) :: (Eq a) => a -> a -> Bool  
+```
+
+Todo lo que esta antes del `=>` es un **class constraint**
+
+Hay una lista copada de typeclasses en el [LYAH](http://learnyouahaskell.com/types-and-typeclasses)
+
+#### Type annotations
+
+Es como un type assertion en go. Es para decir de forma explicita cual deberia
+ser el tipo de una expresion.
+
+```haskell
+ghci> read "5" :: Int  
+5  
+ghci> read "5" :: Float  
+5.0  
+```
+
+#### fromIntegral
+
+Funcion util para pasar de Integrals (Int / Integer) a Num.
+
+## Syntax in Functions
