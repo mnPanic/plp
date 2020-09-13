@@ -228,4 +228,302 @@ ghci> read "5" :: Float
 
 Funcion util para pasar de Integrals (Int / Integer) a Num.
 
-## Syntax in Functions
+## 4. Syntax in Functions
+
+### Pattern matching
+
+Consiste en especificar *patrones* a los cuales algunos datos se deberian
+ajustar, y luego chequear para ver si lo hace para deconstruir la data acorde a
+esos patrones. Por ejemplo,
+
+```haskell
+lucky :: (Integral a) => a -> String  
+lucky 7 = "LUCKY NUMBER SEVEN!"
+lucky x = "Sorry, you're out of luck, pal!"
+```
+
+Cuando se llame a `lucky`, se van a chequear los patrones de arriba abajo y se
+usa el primero que matche.
+
+Tambien puede fallar,
+
+```haskell
+charName :: Char -> String  
+charName 'a' = "Albert"  
+charName 'b' = "Broseph"  
+charName 'c' = "Cecil"  
+
+ghci> charName 'a'  
+"Albert"  
+ghci> charName 'b'  
+"Broseph"  
+ghci> charName 'h'  
+"*** Exception: tut.hs:(53,0)-(55,21): Non-exhaustive patterns in function charName  
+```
+
+Cuando uno hace patrones, deberia poner a lo ultimo un "catch-all" de forma tal
+que no crashee cuando encuentra uno que no matchea.
+
+#### Patterns
+
+Son utiles para no repetir el patron para referirse al entero
+
+```haskell
+capital :: String -> String  
+capital "" = "Empty string, whoops!"  
+capital all@(x:xs) = "The first letter of " ++ all ++ " is " ++ [x]  
+```
+
+### Guards
+
+Es como un if pero es mas readable.
+
+```haskell
+bmiTell :: (RealFloat a) => a -> String  
+bmiTell bmi  
+    | bmi <= 18.5 = "You're underweight, you emo, you!"  
+    | bmi <= 25.0 = "You're supposedly normal. Pffft, I bet you're ugly!"  
+    | bmi <= 30.0 = "You're fat! Lose some weight, fatty!"  
+    | otherwise   = "You're a whale, congratulations!"  
+```
+
+### `where`
+
+Suponiendo que se quisiera calcular el bmi ahi
+
+```haskell
+bmiTell :: (RealFloat a) => a -> a -> String  
+bmiTell weight height  
+    | weight / height ^ 2 <= 18.5 = "You're underweight, you emo, you!"  
+    | weight / height ^ 2 <= 25.0 = "You're supposedly normal. Pffft, I bet you're ugly!"  
+    | weight / height ^ 2 <= 30.0 = "You're fat! Lose some weight, fatty!"  
+    | otherwise                   = "You're a whale, congratulations!"  
+```
+
+Y se puede omitir la repeticion de calcularlo usando un `where` binding
+
+```haskell
+bmiTell :: (RealFloat a) => a -> a -> String  
+bmiTell weight height  
+    | bmi <= 18.5 = "You're underweight, you emo, you!"  
+    | bmi <= 25.0 = "You're supposedly normal. Pffft, I bet you're ugly!"  
+    | bmi <= 30.0 = "You're fat! Lose some weight, fatty!"  
+    | otherwise   = "You're a whale, congratulations!"  
+    where bmi = weight / height ^ 2  
+```
+
+### `let`
+
+Los *let bindings* son muy similares a los where. Se usan de la forma
+
+```
+let <bindings> in <expr>
+```
+
+Mas ejemplos en el lyah
+
+### Case expressions
+
+La sintaxis general es
+
+```haskell
+case expression of pattern -> result  
+                   pattern -> result  
+                   pattern -> result  
+                   ...  
+```
+
+Y cuando uno define funciones por pattern matching no es mas que un syntactic
+sugar para un case of.
+
+```haskell
+head' :: [a] -> a  
+head' [] = error "No head for empty lists!"  
+head' (x:_) = x
+
+-- es syntactic sugar de
+head' :: [a] -> a  
+head' xs = case xs of [] -> error "No head for empty lists!"  
+                      (x:_) -> x  
+```
+
+La ventaja que tienen es que, al ser una *expression*, se pueden usar en
+cualquier lado. Por ejemplo:
+
+```haskell
+describeList :: [a] -> String
+describeList xs = "The list is " ++ case xs of [] -> "empty."
+                                               [x] -> "a singleton list."
+                                               xs -> "a longer list."
+```
+
+Pero como se pueden usar como pattern matching, se podria haber definido
+
+```haskell
+describeList :: [a] -> String
+describeList xs = "The list is " ++ what xs
+    where what [] = "empty."
+          what [x] = "a singleton list."
+          what xs = "a longer list."
+```
+
+## 5. Recursion
+
+Nada nuevo
+
+## 6. Higher order
+
+### Curried functions
+
+Function in haskell oficially take only one parameter. All functions that accept
+several parameters are **curried functions**.
+
+For example the type of `max` is `max :: (Ord a) => a -> a -> a`. It could also
+be written as `max :: (Ord a) => a -> (a -> a)`, which better reflects what
+happens. `max` takes an `a` and returns *a function* that takes an `a` and
+returns an `a`.
+
+If we call a function with *too few* parameters, we get back a **partially
+applied** function, one that takes as many parameters as we left out.
+
+Inflix functions can also be partially applied using *sections*. To section an
+inflix function surround it with parantheses and only supply a parameter on one
+side, which returns a function that applies the parameter to the side which is
+missing an operand.
+
+```haskell
+ghci> (10/) 100
+0.1
+ghci> (/10) 100
+10.0
+```
+
+### flip
+
+Flip takes a function and returns another that applies the parameters flipped
+
+### `map` & `filter`
+
+`map` takes a function and a list and applies that function to every element in
+the list, producing a new list (with the same length).
+
+```haskell
+map :: (a -> b) -> [a] -> [b]  
+map _ [] = []  
+map f (x:xs) = f x : map f xs  
+```
+
+`filter` is a function that takes a predicate and a list, and returns the list
+of elements that satisfy the predicate.
+
+```haskell
+filter :: (a -> Bool) -> [a] -> [a]  
+filter _ [] = []  
+filter p (x:xs)
+    | p x       = x : filter p xs  
+    | otherwise = filter p xs  
+```
+
+### `takeWhile`
+
+`takeWhile` takes a predicate and a list and then goes from the beginning and
+returns elements while the predicate holds true. Once an element for which it
+doesn't hold is found, it stops.
+
+### Lambdas
+
+Lambdas are anonymous functions used because some functions are needed only
+once.
+
+### Folds
+
+A fold takes a binary function, a starting value (the *accumulator*) and a list
+to fold up. The binary function is called with the accumulator and the first (or
+last) element and it produces a new accumulator. Then it is called again with
+the following, and so on.
+
+`foldl`, also called *left fold*, folds the list up from the left side. The
+binary function is applied between the starting value and the head of the list.
+
+```haskell
+sum' :: (Num a) => [a] -> a
+sum' xs = foldl (\acc x -> acc + x) 0 xs
+-- sum' = foldl (+) 0 -- succint as fuck
+```
+
+The right fold, `foldr`, works in a similar way, only the accumulator eats up
+the values from the right. Also the parameters on the binary function are the
+other way around (`\x acc -> ...`)
+
+We can implement map and filter with folds
+
+```haskell
+map' :: (a -> b) -> [a] -> [b]  
+map' f = foldr (\x acc -> f x : acc) []
+map' f = foldl (\acc x -> acc ++ [f x]) []
+```
+
+As `++` is more expensive than `:`, we usually use `foldr` instead of `foldl`
+when building up new lists from a list.
+
+**One big difference** is that right folds work on infinite lists, while left
+ones don't.
+
+Folds can be used to implement any function where you traverse a list once,
+element by element, and then return something based on that.
+
+### Scans
+
+Los scans son como los folds, solo que devuelven los valores intermedios del
+acumulador en una lista.
+
+### `$` (function application)
+
+The `$` function, also called *function application*, is defined like so
+
+```haskell
+($) :: (a -> b) -> a -> b
+f $ x = f x
+```
+
+Function application with a space has a really high precedence, `$` has the
+lowest precedence. Function application with a space is left-associative
+(`f a b c` is the same as `(((f a) b) c)`), but with `$` is right associative
+(`f (g (z x))` is equal to `f $ g $ z x`).
+
+It is usually used to save parentheses.
+
+```haskell
+sum (map sqrt [1..130])
+sum $ map sqrt [1..130]
+```
+
+When a `$` is encountered, the expression on its right is applied as the
+parameter of the function to its left.
+
+But it also means that function application can be treated just like another
+function. So we can, for example, map it over a list of functions
+
+```haskell
+ghci> map ($ 3) [(4+), (10*), (^2), sqrt]
+[7.0,30.0,9.0,1.7320508075688772]  
+```
+
+### `.` (Composition)
+
+In mathematics, function composition is defined like $(f \circ g)(x) = f(g(x))$
+
+```haskell
+(.) :: (b -> c) -> (a -> b) -> a -> c  
+f . g = \x -> f (g x)  
+```
+
+Function composition is also right-associative, so we can compose many at a
+time. `f (g (z x))` is equivalent to `(f . g . z) x`.
+
+```haskell
+ghci> map (\xs -> negate (sum (tail xs))) [[1..5],[3..6],[1..7]]  
+[-14,-15,-27]  
+ghci> map (negate . sum . tail) [[1..5],[3..6],[1..7]]  
+[-14,-15,-27]  
+```
