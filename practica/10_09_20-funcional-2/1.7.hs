@@ -8,8 +8,3 @@ listasQueSuman 0 = [[]]
 -- Se soluciona usando concat para concatenar todas juntas
 listasQueSuman n = concat [ map ((n-k):) listasQueSuman k | k <- [0 .. n-1] ]
 listasQueSuman n = foldr (++) [] [ map ((n-k):) listasQueSuman k | k <- [0 .. n-1] ]
-
--- todas las listas finitas de enteros positivos (mayores o iguales a 1)
-listasPositivas :: [[Int]]
-listasPositivas = concat [listasQueSuman n | n <- [1..]]
-listasPositivas = concatMap listasQueSuman [1..]

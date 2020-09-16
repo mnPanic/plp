@@ -1,4 +1,5 @@
-data Polinomio a = X
+data Polinomio
+    | a = X
     | Cte a
     | Suma (Polinomio a) (Polinomio a)
     | Prod (Polinomio a) (Polinomio a)

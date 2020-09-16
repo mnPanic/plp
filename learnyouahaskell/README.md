@@ -2,6 +2,41 @@
 
 Notas de http://learnyouahaskell.com, en spanglish. Don't @ me.
 
+- [Learn You a Haskell for Great Good!](#learn-you-a-haskell-for-great-good)
+  - [Introduction](#introduction)
+    - [GHCi](#ghci)
+  - [Starting Out](#starting-out)
+    - [Functions](#functions)
+    - [If](#if)
+    - [Funciones sin parametros (definitions)](#funciones-sin-parametros-definitions)
+    - [Lists](#lists)
+      - [Texas Ranges](#texas-ranges)
+      - [Infinite lists](#infinite-lists)
+    - [Tuples](#tuples)
+  - [Types and Typeclasses](#types-and-typeclasses)
+    - [Polimorphic functions](#polimorphic-functions)
+    - [Typeclasses](#typeclasses)
+      - [Type annotations](#type-annotations)
+      - [fromIntegral](#fromintegral)
+  - [4. Syntax in Functions](#4-syntax-in-functions)
+    - [Pattern matching](#pattern-matching)
+      - [Patterns](#patterns)
+    - [Guards](#guards)
+    - [`where`](#where)
+    - [`let`](#let)
+    - [Case expressions](#case-expressions)
+  - [5. Recursion](#5-recursion)
+  - [6. Higher order](#6-higher-order)
+    - [Curried functions](#curried-functions)
+    - [flip](#flip)
+    - [`map` & `filter`](#map--filter)
+    - [`takeWhile`](#takewhile)
+    - [Lambdas](#lambdas)
+    - [Folds](#folds)
+    - [Scans](#scans)
+    - [`$` (function application)](#-function-application)
+    - [`.` (Composition)](#-composition)
+
 ## Introduction
 
 - **Referential transparency**: If a function is called twice with the same
