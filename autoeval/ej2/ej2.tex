@@ -1,0 +1,359 @@
+\documentclass[10pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+% enumerate con letras
+\usepackage[shortlabels]{enumitem}
+
+\usepackage{bm} % \bm, https://www.ctan.org/pkg/bm
+
+% Para hacer derivaciones y eso
+% https://personal.utdallas.edu/~hamlen/trfrac.pdf
+\usepackage{tfrac}
+
+% Simbolos matematicos
+\usepackage{mathtools}
+\usepackage{amsfonts}
+
+% https://www.overleaf.com/learn/latex/page_size_and_margins
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    left=13pt
+}
+
+% Lambda calculo
+% Robado amablemente de
+% https://github.com/CubaWiki/PLP-resumen-iarcuschin/blob/master/resumen.tex#L61
+\newcommand{\abs}[3]{\ensuremath{\lambda#1:#2.#3}}
+\newcommand{\app}[2]{\ensuremath{#1\ #2}}
+\newcommand{\sust}[2]{\ensuremath{#1\{#2\}}}
+\newcommand{\eqdef}[0]{\ \stackrel{\mathclap{\normalfont\mbox{def}}}{=}\ }
+\newcommand{\ifte}[3]{\ensuremath{if\ #1\ then\ #2\ else\ #3}}
+\newcommand{\tipa}[3]{#1 \ \rhd \ #2 : #3}
+
+\newcommand{\Gtipa}[2]{\tipa{\Gamma}{#1}{#2}}
+\newcommand{\GStipa}[2]{\ensuremath{\Gamma|\Sigma \rhd #1 : #2}}
+
+%\newcommand{\deriv}[3]{\ensuremath{\frac{#1}{#2}\ \text{(#3)}}}
+%\renewcommand{\vert}{\ |\ }
+%\newcommand{\from}[0]{\leftarrow}
+%\newcommand{\toto}[0]{\twoheadrightarrow}
+%\newcommand{\erase}[1]{\textsc{Erase}(\ensuremath{#1})}
+%\newcommand{\stabs}[2]{\ensuremath{\lambda#1.#2}}
+%\newcommand{\w}[1]{\ensuremath{\mathbb{W}(#1)}}
+%\newcommand{\uni}[0]{\ \stackrel{\mathclap{\normalfont\mbox{.}}}{=}\ }
+%\newcommand{\unito}[0]{\mapsto}
+
+
+% Macros especificos al ejercicio
+\newcommand{\MAT}[1]{\text{MAT}(#1)}
+\newcommand{\MatInf}[1]{\text{MatInf}_{#1}}
+\newcommand{\MatGet}[3]{#1[#2][#3]}
+\newcommand{\MatSet}[4]{\MatGet{#1}{#2}{#3} \leftarrow #4}
+
+\begin{document}
+
+%% trfrac
+% \trfrac[name]{premises}{consequent}
+%
+% Ejemplo
+%
+% \[ \trfrac[\small(\emph{app})]
+% {\Gamma \vdash e_1:\tau\rightarrow\tau' \qquad
+% \trfrac[\small(\emph{app})]
+% {\Gamma \vdash e_2:\tau''\rightarrow\tau \qquad
+% \Gamma \vdash e_3:\tau''}
+% {\Gamma \vdash e_2 e_3:\tau}}
+% {\Gamma \vdash e_1 (e_2 e_3):\tau'} \]
+
+\section*{Ej 2}
+
+\begin{enumerate}[a)]
+
+\item \textit{Reglas de tipado}
+
+Agrego una regla de tipado para cada termino agregado a la extension
+
+\[ \trfrac[(T-MAT)]{\Gtipa{M}{\sigma}}{\Gtipa{\MAT{M}}{\MatInf{\sigma}}} \]
+
+\[
+    \trfrac[(T-MatSet)]
+        {
+            \Gtipa{M}{\MatInf{\sigma}} \qquad 
+            \Gtipa{P}{\sigma} \qquad
+            \Gtipa{N, O}{Nat}
+        }
+        {
+            \Gtipa{\MatSet{M}{N}{O}{P}}{\MatInf{\sigma}}
+        }
+\]
+
+\[
+    \trfrac[(T-MatGet)]
+        {
+            \Gtipa{M}{\MatInf{\sigma}} \qquad 
+            \Gtipa{N, O}{Nat}
+        }
+        {
+            \Gtipa{\MatGet{M}{N}{O}}{\sigma}
+        }
+\]
+
+\[
+    \trfrac[(T-MatMap)]
+        {
+            \Gtipa{M}{\MatInf{\sigma}} \qquad 
+            \Gtipa{N}{\sigma \rightarrow \tau}
+        }
+        {
+            \Gtipa{map(M, N)}{\MatInf{\tau}}
+        }
+\]
+
+
+\item \textit{Demostrar el siguiente juicio de tipado o explicar por que no es derivable
+}
+\[
+    \tipa
+        {\{i: Nat, m: \MatInf{Nat}\}}
+        {map((\MatSet{m}{i}{i}{0}), \abs{x}{Nat}{isZero(x)})}
+        {\MatInf{Bool}}
+\]
+
+Intuitivamente deberia ser derivable, ya que mapea una matriz infinita de
+naturales a una matriz de booleanos que indica si cada uno era cero. Intento de
+demostrarlo
+
+\newcommand{\deriv}[3]{\trfrac[(\emph{#1})]{#2}{#3}}
+
+\[
+    \trfrac[(T-MatMap)]
+    {
+        \trfrac[(T-MatSet)]
+        {
+            \begin{trgather}
+            \trfrac[(T-Var)]
+            {
+                \trfrac[]
+                {\checkmark}
+                {
+                    m:\MatInf{Nat} \in \Gamma
+                }
+            }
+            {
+                \Gtipa{m}{\MatInf{Nat}}
+            }
+            \\
+            \trfrac[(T-Var)]
+            {
+                \trfrac[]
+                {\checkmark}
+                {
+                    i:Nat \in \Gamma
+                }
+            }
+            {
+                \Gtipa{i}{Nat}
+            }
+            \qquad\qquad\qquad\quad
+            \trfrac[(T-Zero)]
+            {\checkmark}
+            {
+                \Gtipa{0}{Nat}
+            }
+            \end{trgather}
+        }
+        {
+            \Gtipa{\MatSet{m}{i}{i}{0}}{\MatInf{Nat}}
+        }
+        \quad
+        \trfrac[(T-Abs)]
+        {
+            \trfrac[(T-IsZero)]
+            {
+                \trfrac[(T-Var)]
+                {
+                    \trfrac[]
+                    {\checkmark}
+                    {
+                        x:Nat \in \Gamma \cup \{x:Nat\}   
+                    }
+                }
+                {
+                    \tipa{\Gamma \cup \{x:Nat\}}{x}{Nat}
+                }
+            }
+            {
+                \tipa{\Gamma \cup \{x:Nat\}}{isZero(x)}{Bool}
+            }
+        }
+        {
+            \Gtipa{\abs{x}{Nat}{isZero(x)}}{Nat \rightarrow Bool}
+        }
+    }
+    {
+        \tipa
+        {\Gamma = \{i: Nat, m: \MatInf{Nat}\}}
+        {map((\MatSet{m}{i}{i}{0}), \abs{x}{Nat}{isZero(x)})}
+        {\MatInf{Bool}}
+    } 
+\]
+
+\item \textit{Indicar formalmente cómo se modifica el conjunto de valores, o explicar
+por qué no se modifica.}
+
+    Es necesario agregar las matrices como valor, la idea va a ser similar a como se
+    construyen los naturales. $MAT(M)$ va a ser un valor con una matriz con todos
+    Ms, y se va construir con $\MatSet{V}{X}{Y}{M}$. Esto quiere decir que, por
+    ejemplo, $\MatSet{(\MatSet{(\MatSet{MAT(0)}{0}{0}{1})}{1}{1}{2})}{2}{2}{3}$ seria un
+    valor valido. El conjunto de valores entonces sería
+
+    \[
+        V, X, Y ::= \ldots \mid MAT(M) \mid \MatSet{V}{X}{Y}{M}
+    \]
+
+\item \textit{Dar la semántica operacional de a un paso para la extensión.}
+
+
+\[
+    \trfrac[(E-MatSetC)] {
+        M_1 \to M_1'
+    }{
+        \MatSet{M_1}{X}{Y}{M_2} \to \MatSet{M_1'}{X}{Y}{M_2}
+    }
+\]
+\[
+    \trfrac[(E-MatSetXC)] {
+        N \to N'
+    }{
+        \MatSet{M_1}{N}{O}{M_2} \to \MatSet{M_1}{N'}{O}{M_2}
+    }
+\]
+\[
+    \trfrac[(E-MatSetYC)] {
+        O \to O'
+    }{
+        \MatSet{M_1}{N}{O}{M_2} \to \MatSet{M_1}{N}{O'}{M_2}
+    }
+\]
+\[
+    \trfrac[(E-MatGetNoMatch)]{
+    }{
+        \MatGet{(\MatSet{V}{I}{J}{M})}{X}{Y} \to \MatGet{V}{X}{Y}
+    }
+\]
+\[
+    \trfrac[(E-MatGetXC)]{
+        N \to N'
+    }{
+        \MatGet{M}{N}{O} \to \MatGet{M}{N'}{O}
+    }
+\]
+\[
+    \trfrac[(E-MatGetYC)]{
+        O \to O'
+    }{
+        \MatGet{M}{X}{O} \to \MatGet{M}{X}{O'}
+    }
+\]
+\[
+    \trfrac[(E-MatGetC)]{
+        M \to M'
+    }{
+        \MatGet{M}{X}{Y} \to \MatGet{M'}{X}{Y}
+    }
+\]
+\[
+    \trfrac[(E-MatGetSetC)]{
+        M \to M'
+    }{
+        \MatGet{(\MatSet{V}{X}{Y}{M})}{X}{Y} \to \MatGet{(\MatSet{V}{X}{Y}{M'})}{X}{Y}
+    }
+\]
+\[
+    \trfrac[(E-MatGetMATC)]{
+        M \to M'
+    }{
+        \MatGet{(\MAT{M})}{X}{Y} \to \MatGet{(\MAT{M'})}{X}{Y}
+    }
+\]
+\[
+    \trfrac[(E-MatGetMAT)]{
+    }{
+        \MatGet{(\MAT{V})}{X}{Y} \to V
+    }
+\]
+\[
+    \trfrac[(E-MatGetSet)]{
+    }{
+        \MatGet{(\MatSet{V}{X}{Y}{W})}{X}{Y} \to W
+    }
+\]
+\[
+    \trfrac[(E-MatMapCF)]{
+        F \to F'
+    }{
+        map(M, F) \to map(M, F')
+    }
+\]
+\[
+    \trfrac[(E-MatMapCM)]{
+        M \to M'
+    }{
+        map(M, F) \to map(M', F)
+    }
+\]
+\[
+    \trfrac[(E-MatMapMAT)]{
+    }{
+        map(MAT[M], F) \to MAT(F M)
+    }
+\]
+\[
+    \trfrac[(E-MatMapSet)]{
+    }{
+        map(\MatSet{V}{X}{Y}{M}, F) \to \MatSet{map(V, F)}{X}{Y}{F\ M}
+    }
+\]
+
+\item \textit{Mostrar como se reducen paso a paso}
+
+\begin{enumerate}[I)]
+    \item $\MatGet{ (\MatSet{MAT(\abs{y}{Bool}{y})}{succ(0)}{0}{\abs{x}{Bool}{\text{true}}}) }{0}{succ(0)}$
+    
+    \begin{align*}
+        &\MatGet{ (\MatSet{MAT(\abs{y}{Bool}{y})}{succ(0)}{0}{\abs{x}{Bool}{\text{true}}}) }{0}{succ(0)}\\
+        &\to_\text{(E-MatGetNoMatch)}
+            \MatGet{(MAT(\abs{y}{Bool}{y})) }{0}{succ(0)}\\
+        &\to_\text{(E-MatGetMAT)}
+            \abs{y}{Bool}{y}
+    \end{align*}
+
+    \item $\MatGet{( (\abs{x}{Bool}{\MatSet{\MAT{x}}{0}{0}{false}})\ true)}{0}{pred(succ(0)}$
+    \begin{align*}
+        &\MatGet{( (\abs{x}{Bool}{\MatSet{\MAT{x}}{0}{0}{false}})\ true)}{0}{pred(succ(0)}\\
+        &\to_\text{(E-MatGetYC), (E-PredSucc)}
+            \MatGet{( (\abs{x}{Bool}{\MatSet{\MAT{x}}{0}{0}{false}})\ true)}{0}{\bm{0}}\\
+        &\to_\text{(E-MatGetC, E-AppAbs)}
+            \MatGet{(\MatSet{\MAT{\bm{true}}}{0}{0}{false})}{0}{\bm{0}}\\
+        &\to_\text{(E-MatGetSet)} false
+    \end{align*}
+
+    \item $\MatGet{map(\MatSet{\MAT{0}}{0}{0}{succ(0)}, \abs{x}{Nat}{isZero(x)})}{0}{0}$
+    \begin{align*}
+        &\MatGet{map(\MatSet{\MAT{0}}{0}{0}{succ(0)}, \abs{x}{Nat}{isZero(x)})}{0}{0}\\
+        &\to_\text{(E-MatGetC, E-MatMapSet)}
+            \MatGet{\MatSet{map(\MAT{0}, \abs{x}{Nat}{isZero(x)})}{0}{0}{(\abs{x}{Nat}{isZero(x)})\ succ(0)})}{0}{0}\\
+        &\to_\text{(E-MatGetC, E-MatMapMAT)}
+            \MatGet{\MatSet{\MAT{(\abs{x}{Nat}{isZero(x)})\ 0}}{0}{0}{(\abs{x}{Nat}{isZero(x)})\ succ(0)})}{0}{0}\\
+        &\to_\text{(E-MatGetSetC, E-AppAbs)}
+            \MatGet{\MatSet{\MAT{(\abs{x}{Nat}{isZero(x)})\ 0}}{0}{0}{isZero(succ(0))})}{0}{0}\\
+        &\to_\text{(E-MatGetSetC, E-IsZeroSucc)}
+            \MatGet{\MatSet{\MAT{(\abs{x}{Nat}{isZero(x)})\ 0}}{0}{0}{\bm{false}})}{0}{0}\\
+        &\to_\text{(E-MatGetSet, E-IsZeroSucc)} false
+    \end{align*}
+
+\end{enumerate}
+
+\end{enumerate}
+\end{document}

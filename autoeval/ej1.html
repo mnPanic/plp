@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>PLP - Autoevaluacion 2c2020 - Ej 1 - Programación funcional</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="plp---autoevaluacion-2c2020---ej-1---programación-funcional">PLP - Autoevaluacion 2c2020 - Ej 1 - Programación funcional</h1>
+<p>No se permite usar recursión explícita.</p>
+<p>Se quiere representar digrafos en Haskell mediante una lista de nodos y una func
+de adyacencia,</p>
+<pre><code class="language-haskell"><div><span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Nodo</span> = <span class="hljs-type">Integer</span></span>
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Grafo</span> = <span class="hljs-type">G</span> [<span class="hljs-type">Nodo</span>] (<span class="hljs-type">Nodo</span> -&gt; [<span class="hljs-type">Nodo</span>])</span>
+</div></code></pre>
+<p>Donde, <code>G ns f</code> es un grafo cuyos nodos son los elementos de ns, y dado
+n <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∈</mo></mrow><annotation encoding="application/x-tex">\in</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5782em;vertical-align:-0.0391em;"></span><span class="mrel">∈</span></span></span></span> ns, <code>f n</code> es la lista de vecinos de n. Los arcos que salen de n.</p>
+<p>Invariante:</p>
+<ul>
+<li><code>ns</code> y las listas que devuelve <code>f</code> son finitas sin repetidos.</li>
+<li>Todos los elementos de las listas en la imagen de f pertenecen a ns. Pero
+podria devolver cualquier cosa si se la aplica a un nodo que no pertenece a
+ns.</li>
+</ul>
+<h2 id="1a">1.a</h2>
+<p>El grafo que contiene los nodos numerados del 1 al 9, cuya func de adyacencia
+conecta a cada numero par a todos los nodos, y los impares no tienen conexiones
+de salida.</p>
+<pre><code class="language-haskell"><div><span class="hljs-title">ejGrafo</span> :: <span class="hljs-type">Grafo</span>
+<span class="hljs-title">ejGrafo</span> = <span class="hljs-type">G</span> ns ady
+    <span class="hljs-keyword">where</span> ns = [<span class="hljs-number">1.</span><span class="hljs-number">.9</span>]
+          ady n = <span class="hljs-keyword">if</span> n `mod` <span class="hljs-number">2</span> == <span class="hljs-number">0</span>
+                  <span class="hljs-keyword">then</span> ns   <span class="hljs-comment">-- si es par, todos los nodos.</span>
+                  <span class="hljs-keyword">else</span> []   <span class="hljs-comment">-- sino, ninguno.</span>
+</div></code></pre>
+<h2 id="1b">1.b</h2>
+<p>Dado un grafo y un nodo, indica si pertenece a su propia lista de vecinos</p>
+<pre><code class="language-haskell"><div><span class="hljs-title">nodoReflex</span> ejGrafo <span class="hljs-number">6</span> -&gt; <span class="hljs-type">True</span>
+<span class="hljs-title">nodoReflex</span> ejGrafo <span class="hljs-number">1</span> -&gt; <span class="hljs-type">False</span>
+</div></code></pre>
+<pre><code class="language-haskell"><div><span class="hljs-title">nodoReflex</span> :: <span class="hljs-type">Grafo</span> -&gt; <span class="hljs-type">Nodo</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">nodoReflex</span> (<span class="hljs-type">G</span> ns f) n = n `elem` f n
+</div></code></pre>
+<h2 id="1c">1.c</h2>
+<p>Dado un grafo y un camino valido dentro del grafo de long mayor o igual a 1,
+devuelve los caminos resultantes de extender a c con un unico salto en el grafo.
+Sug: usar <code>last</code></p>
+<p>Ej:</p>
+<pre><code class="language-haskell"><div><span class="hljs-title">extenderCamino</span> ejGrafo [<span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">6</span>] -&gt; [[<span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">6</span>, <span class="hljs-number">1</span>], ..., [<span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">6</span>, <span class="hljs-number">9</span>]]
+</div></code></pre>
+<pre><code class="language-haskell"><div><span class="hljs-title">extenderCamino</span> :: <span class="hljs-type">Grafo</span> -&gt; [<span class="hljs-type">Nodo</span>] -&gt; [[<span class="hljs-type">Nodo</span>]]
+<span class="hljs-comment">-- Para cada adyacente al ultimo nodo, devuelvo un nuevo camino que lo</span>
+<span class="hljs-comment">-- agregue al final</span>
+<span class="hljs-title">extenderCamino</span> (<span class="hljs-type">G</span> ns f) c = map (\n -&gt; c ++ [n]) (f (last c))
+</div></code></pre>
+<h2 id="1d">1.d</h2>
+<p>Dado un grafo y un nat k, enumera los caminos que pasan por k arcos. Los que
+pasan por 0 arcos son las listas de un solo nodo.
+Sug: <code>foldNat</code>.</p>
+<pre><code class="language-haskell"><div><span class="hljs-comment">-- sacado del taller 1</span>
+<span class="hljs-title">foldNat</span> :: a-&gt;(a-&gt;a)-&gt;<span class="hljs-type">Integer</span>-&gt;a
+<span class="hljs-title">foldNat</span> caso0 casoSuc n
+    | n == <span class="hljs-number">0</span> = caso0
+    | n &gt; <span class="hljs-number">0</span> = casoSuc (foldNat caso0 casoSuc (n<span class="hljs-number">-1</span>))
+
+</div></code></pre>
+<p>Borrador</p>
+<pre><code class="language-haskell"><div><span class="hljs-comment">-- en el caso base, devuelvo todos los nodos para iniciar de alli los caminos</span>
+<span class="hljs-title">caminosDeLong</span> (<span class="hljs-type">G</span> ns f) <span class="hljs-number">0</span> = ns
+<span class="hljs-comment">-- en cada paso, extiendo los caminos agregando todos los adyacentes al ultimo nodo.</span>
+<span class="hljs-title">caminosDeLong</span> (<span class="hljs-type">G</span> ns f) k = map (\c -&gt; extenderCamino (<span class="hljs-type">G</span> ns f) c) (caminosDeLong (k - <span class="hljs-number">1</span>))
+</div></code></pre>
+<p>Con <code>foldNat</code></p>
+<pre><code class="language-haskell"><div><span class="hljs-title">caminosDeLong</span> :: <span class="hljs-type">Grafo</span> -&gt; <span class="hljs-type">Int</span> -&gt; [[<span class="hljs-type">Nodo</span>]]
+<span class="hljs-title">caminosDeLong</span> g k = foldNat ns (\cs -&gt; map (extenderCamino g) cs) k
+</div></code></pre>
+<h2 id="1e">1.e</h2>
+<p>Indica si existe un camino que pase por todos los nodos del grafo, sin
+repetirlos.</p>
+<p>Si existe, entonces tiene que tener longitud igual a la cantidad de nodos - 1,
+porque sino repetiria alguno.</p>
+<pre><code class="language-haskell"><div><span class="hljs-title">hamiltoniano</span> :: <span class="hljs-type">Grafo</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-comment">-- tendra un camino que pase por todos los nodos del grafo si de todos los</span>
+<span class="hljs-comment">-- caminos de longitud (length ns) hay alguno que no tenga repetidos.</span>
+<span class="hljs-title">hamiltoniano</span> (<span class="hljs-type">G</span> ns f) = (length caminosSinRepetidos) != <span class="hljs-number">0</span>
+    <span class="hljs-keyword">where</span> caminosSinRepetidos = filter noTieneRepetidos (caminosDeLong (length ns))
+          noTieneRepetidos c = length c == length (nub c)
+    <span class="hljs-comment">-- nub remueve los duplicados de una lista. Entonces si su longitud es igual</span>
+    <span class="hljs-comment">-- que luego de removerlos, no tenia duplicados</span>
+</div></code></pre>
+<h2 id="1f">1.f</h2>
+<p>Devuelve <code>True</code> sii el grafo dado tiene al menos un ciclo.</p>
+<p>Si el grafo tiene un ciclo, entonces tiene que tener un ciclo simple de
+longitud &lt;= n (con n la cantidad de vertices). Si tiene uno de long mayor, no
+seria simple, y eso es porque en algun momento repite nodos. Se pueden sacar
+esas repeticiones y conseguir un ciclo simple.</p>
+<pre><code class="language-haskell"><div><span class="hljs-comment">-- Veo todos los caminos de longitudes 1...k, y para cada uno me fijo si tiene</span>
+<span class="hljs-comment">-- un ciclo.</span>
+<span class="hljs-title">tieneCiclo</span> :: <span class="hljs-type">Grafo</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">tieneCiclo</span> g = <span class="hljs-type">True</span> `elem` (filter (\k -&gt; hayCiclos (caminosDeLong g k) [<span class="hljs-number">1.</span>.length ns])
+    <span class="hljs-comment">-- tiene ciclos si al menos un camino es un ciclo</span>
+    <span class="hljs-keyword">where</span> hayCiclos cs = (length (filter esCiclo cs)) != <span class="hljs-number">0</span>
+          <span class="hljs-comment">-- es un ciclo si arranca y termina en el mismo</span>
+          esCiclo c = head c == last c
+</div></code></pre>
+<h2 id="1g">1.g</h2>
+<p>Enumera todos los caminos del grafo.</p>
+<pre><code class="language-haskell"><div><span class="hljs-title">caminos</span> :: <span class="hljs-type">Grafo</span> -&gt; [[<span class="hljs-type">Nodo</span>]]
+<span class="hljs-comment">-- todos los caminos van a ser los caminos de long1, unidos con los de long2, ...</span>
+<span class="hljs-title">caminos</span> g = concatMap caminosDeLong g [<span class="hljs-number">1.</span>.]
+</div></code></pre>
+
+    </body>
+    </html>
