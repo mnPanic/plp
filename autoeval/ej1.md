@@ -45,8 +45,13 @@ nodoReflex ejGrafo 1 -> False
 ```
 
 ```haskell
+-- pre: n \in ns
 nodoReflex :: Grafo -> Nodo -> Bool
-nodoReflex (G ns f) n = n `elem` f n
+nodoReflex (G ns f) n = n `elem` (f n)
+-- habria que chequear si n pertenece al grafo porque sino no tenemos
+-- garantizado que hacer.
+-- nodoReflex (G ns f) n = (n `elem` ns) && n `elem` (f n)
+
 ```
 
 ## 1.c
@@ -66,6 +71,7 @@ extenderCamino :: Grafo -> [Nodo] -> [[Nodo]]
 -- Para cada adyacente al ultimo nodo, devuelvo un nuevo camino que lo
 -- agregue al final
 extenderCamino (G ns f) c = map (\n -> c ++ [n]) (f (last c))
+-- (\n -> c ++ [n]) podria ser ((c++) . (:[]))
 ```
 
 ## 1.d
@@ -87,16 +93,24 @@ Borrador
 
 ```haskell
 -- en el caso base, devuelvo todos los nodos para iniciar de alli los caminos
-caminosDeLong (G ns f) 0 = ns
+caminosDeLong (G ns f) 0 = map (:[]) ns
 -- en cada paso, extiendo los caminos agregando todos los adyacentes al ultimo nodo.
-caminosDeLong (G ns f) k = map (\c -> extenderCamino (G ns f) c) (caminosDeLong (k - 1))
+caminosDeLong g@(G ns f) k = concatMap (\c -> extenderCamino g c) (caminosDeLong (k - 1))
+
 ```
 
 Con `foldNat`
 
 ```haskell
 caminosDeLong :: Grafo -> Int -> [[Nodo]]
-caminosDeLong g k = foldNat ns (\cs -> map (extenderCamino g) cs) k
+caminosDeLong g k = foldNat (map (:[]) ns) (\cs -> concatMap (extenderCamino g) cs) k
+```
+
+eta reducción
+
+```haskell
+(\x -> f x) == f
+(\c -> extenderCamino g c) == extenderCamino g
 ```
 
 ## 1.e
@@ -116,6 +130,8 @@ hamiltoniano (G ns f) = (length caminosSinRepetidos) != 0
           noTieneRepetidos c = length c == length (nub c)
     -- nub remueve los duplicados de una lista. Entonces si su longitud es igual
     -- que luego de removerlos, no tenia duplicados
+-- otro
+-- any noTieneRepetidos $ caminosDeLong g (long ns - 1)
 ```
 
 ## 1.f
@@ -146,4 +162,8 @@ Enumera todos los caminos del grafo.
 caminos :: Grafo -> [[Nodo]]
 -- todos los caminos van a ser los caminos de long1, unidos con los de long2, ...
 caminos g = concatMap caminosDeLong g [1..]
+-- caminos g = concatMap caminosDeLong g [0..]
+
+-- si no tiene ciclos, no termina nunca
+caminos g = concatMap caminosDeLong g if tieneCiclo g then [0..] else [0..long ns - 1]
 ```
