@@ -173,8 +173,7 @@ tau_h = {alpha si h:alpha \in Gamma_3 | var fresca sino.}
 
 S = mgu
     { rho =.= sigma, phi =.= tau_t, [tau_h] =.= tau_t } U
-    {a_1 =.= a_2 | y : a_1 \in \Gamma_i, y:a_2 \in \Gamma_i, i, j \in {1, 2,
-    3'}}
+    {a_1 =.= a_2 | y : a_1 \in \Gamma_i, y:a_2 \in \Gamma_i, i, j \in {1, 2, 3'}}
 
 ### switch
 
