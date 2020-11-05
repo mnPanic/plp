@@ -24,17 +24,17 @@ let Trie = function(esFinal, hijos) {
     this.contienePalabra = function(p) {
         let actual = this;
         for (let c in p) {
-            if (!(c in actual.hijos)) {
+            if (!(p[c] in actual.hijos)) {
                 return false;
             }
 
             for (let k in actual.hijos) {
-                if (k == c) {
+                if (k == p[c]) {
                     actual = actual.hijos[k];
                     break;
                 }
             }
-        }
+        }       
 
         return actual.esFinal
     }
