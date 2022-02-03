@@ -1,0 +1,307 @@
+\documentclass{report}
+
+% Matemática
+\usepackage{amsmath}    % símbolos matemáticos
+\usepackage{amsthm}     % teoremas
+\usepackage{amsfonts}   % \mathbb
+\usepackage{bm}         % bold math (https://ctan.org/pkg/bm)
+\usepackage{abraces}    % \aunderbrace y \aoverbrace
+\usepackage{mathtools}  % \mathclap
+
+% Figuras
+\usepackage{tikz}                   % gráficos
+\usepackage{float}                  % [H]
+\usepackage{xcolor}                 % colores https://es.overleaf.com/learn/latex/Using_colours_in_LaTeX
+
+\usepackage{framed}     % textbars
+% Texto
+\usepackage[shortlabels]{enumitem}  % enumerate con letras
+
+% Referencias
+\usepackage[colorlinks=true]{hyperref}
+
+% Programas
+% https://tex.stackexchange.com/questions/116595/highlighting-haskell-listings-in-large-tex-document
+% https://leportella.com/minted-vscode/
+% https://tex.stackexchange.com/questions/367332/minted-error-undefined-control-sequence-pyg-with-texmaker
+\usepackage[cache=false]{minted}     % código
+
+\usepackage{listings}   % codigo
+
+\lstset{
+  frame=none,
+  xleftmargin=2pt,
+  stepnumber=1,
+  %numbers=left,
+  %numbersep=5pt,
+  %numberstyle=\ttfamily\tiny\color[gray]{0.3},
+  belowcaptionskip=\bigskipamount,
+  captionpos=b,
+  escapeinside={*'}{'*},
+  language=haskell,
+  tabsize=2,
+  emphstyle={\bf},
+  commentstyle=\it,
+  stringstyle=\mdseries\rmfamily,
+  showspaces=false,
+  keywordstyle=\bfseries\rmfamily,
+  columns=flexible,
+  basicstyle=\small\sffamily,
+  showstringspaces=false,
+  morecomment=[l]\%,
+}
+
+\usetikzlibrary{arrows,positioning,automata,shadows,fit,shapes}
+
+% Teoremas, corolarios, etc.
+% https://www.overleaf.com/learn/latex/theorems_and_proofs
+\theoremstyle{definition} % Para que no salga en italicas
+
+\newtheorem{theorem}{Teorema}[chapter]
+\newtheorem*{theorem*}{Teorema}
+
+\newtheorem{lemma}{Lema}[chapter]
+\newtheorem*{lemma*}{Lema}
+
+\newtheorem{proposition}{Prop.}[chapter]
+\newtheorem*{proposition*}{Prop}
+
+\newtheorem{definition}{Def.}[chapter]
+\newtheorem*{definition*}{Def}
+
+\newtheorem{exmp}{Ejemplo}[chapter]
+\newtheorem*{exmp*}{Ejemplo}
+
+% https://tex.stackexchange.com/questions/118173/how-to-write-ceil-and-floor-in-latex
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+% Comandos de PLP
+%\newcommand{\sigmatsequence}{\overset{\rightarrow}{\sigma}}
+%\newcommand{\tautsequence}{\overset{\rightarrow}{\tau}}
+
+% Entornos
+\newenvironment{nota}[1]
+    {\begin{leftbar}\textbf{#1}}
+    {\end{leftbar}}
+
+\author{Manuel Panichelli}
+\title{Notas para final de PLP}
+
+\begin{document}
+
+\maketitle
+
+\chapter{Paradigma funcional}
+
+\section{Haskell}
+
+\begin{definition}[Paradigma]
+    Un \textbf{paradigma} es una forma de pensamiento.
+\end{definition}
+
+\begin{definition}[Lenguaje de programación]
+    Un \textbf{lenguaje de programación} es el lenguaje que usamos para
+    comunicar lo que queremos que haga una computadora.
+
+    Usamos un lenguaje para describir los computos que lleva a cabo la
+    computadora.
+    
+    Es \textbf{computacionalmente completo} si puede expresar todas las
+    funciones computables. Hay DSLs (\textit{domain specific languages}) que no
+    pueden expresar todo lo computable.
+\end{definition}
+
+\begin{definition}[Paradigma de lenguaje de programación]
+    Lo entendemos como un \textit{estilo} de programación, que tiene que ver con
+    los estilos de las soluciones. Está vinculado con lo que es para uno un
+    modelo de cómputo.
+
+    Lo que vemos antes de la materia es el imperativo: a partir de un estado
+    inicial llegar a un estado final. Programamos con secuencias de
+    instrucciones para cambiar el estado.
+\end{definition}
+
+\section{Programación funcional}
+
+Definiciones:
+
+\begin{itemize}
+    \item \textbf{Programa y modelo de cómputo}: Programar es definir
+    funciones, y ejecutar es evaluar expresiones.
+    \item \textbf{Programa}: Es un conjunto de ecuaciones. Por ej.
+    \texttt{doble x = x + x}
+    \item \textbf{Expresiones}: El significado de una expresión es su valor
+    (si es que está definido). El valor de una expresión depende solo del
+    valor de sus sub-expresiones. Evaluar o reducir una expresion es obtener
+    su valor (por ej. \texttt{doble 2 $\leadsto$ 4})
+    No toda expresion denota un valor, por ejemplo \texttt{doble true}.
+    \item \textbf{Tipos}: El universo de valores está particionado en
+    colecciones denominadas \textit{tipos}, que tienen operaciones asociadas.
+\end{itemize}
+
+Haskell es \textbf{fuertemente tipado}. Toda expresion bien formada tiene un
+tipo, que depende del tipo de sus subexpresiones. Si no puede asignarse un tipo
+a una expresión, no se la considera bien formada.
+
+\begin{minted}{haskell}
+1           :: Int
+'a'         :: Char
+1.2         :: Float
+True        :: Bool
+[1, 2, 3]   :: [Int]
+(1, True)   :: (Int, Bool)
+succ        :: Int -> Int
+\end{minted}
+
+Definiciones de funciones:
+
+\begin{minted}{haskell}
+-- Definición
+doble :: Int -> Int
+doble x = x + x
+
+-- Guardas
+signo :: Int -> Bool
+signo n | n >= 0    = True
+        | otherwise = False
+
+-- Definiciones locales
+f (x, y) = g x + y
+    where g z = z + 2
+
+-- Expresiones lambda
+\x -> x + 1
+\end{minted}
+
+\textbf{Tipos polimórficos}
+
+\begin{minted}[]{haskell}
+    id x = x
+    id :: a -> a
+    -- x es de tipo a, que eventualmente se va a instanciar a algún tipo
+\end{minted}
+
+\textbf{Clases de tipos}: Son como interfaces, que definen un conjunto de
+operaciones.
+
+\begin{minted}[]{haskell}
+    maximo :: Ord a => a -> a -> a
+    maximo x y | x > y = x
+    maximo _ y = y
+    -- Ord: (<), (<=), (>=), (>), max, min, compare
+\end{minted}
+
+\textbf{Tipos algebráicos}
+
+\begin{minted}[]{haskell}
+    data Figura = Circulo Float | Rectangulo Float Float
+    deriving Eq -- deriva la igualdad nativa
+
+    -- (Circulo 1) == (Circulo 1)
+\end{minted}
+
+Estas cosas nos permiten hacer funciones genéricas.
+
+\textbf{Funciones de alto orden}: las funciones son first class citizens, se
+pueden pasar como parámetro.
+
+\subsection{Currificación}
+
+Es un mecanismo que permite reemplazar argumentos estructurados por una
+secuencia de argumentos "simples". Ventajas:
+
+\begin{itemize}
+    \item Evaluación parcial: \texttt{succ = suma 1}
+    \item Evita escribir paréntesis (asumiendo que la aplicación asocia a
+    izquierda). \texttt{suma 1 2 = ((suma 1) 2)}
+\end{itemize}
+
+\textbf{curry y uncurry}
+
+En criollo: una equivalencia entre una func con muchos parametros (una tupla) y
+una funcion equivalente que va tomando de a uno y devuelve funciones.
+
+\begin{minted}[]{haskell}
+    curry :: ((a, b) -> c) -> (a -> (b -> c))
+    curry f a b = f (a, b)
+
+    suma x y = x + y
+    suma' :: (Int, Int) -> Int
+    suma' (x, y) = x + y
+
+    curry suma' 1 2 = suma' (1, 2)
+    curry suma' :: (Int -> (Int -> Int))
+
+    uncurry :: (a -> b -> c) -> ((a -> b) -> c)
+    uncurry f (a, b) = f a b
+\end{minted}
+
+\subsection{Pattern matching}
+
+Una forma copada de definir funciones. Es un mecanismo para comparar un valor
+con un patrón. Si la comparación tiene éxito se puede deconstruir un valor en
+sus partes.
+
+\begin{minted}[]{haskell}
+    data Figura = Circulo Float | Rectangulo Float Float
+
+    area :: Figura -> Float
+    area (Circulo radio) = pi * radio ^ 2
+    area (Rectangulo l1 l2) = l1 * l2
+\end{minted}
+
+El patrón está formado por el constructor y las variables. Los casos se evalúan
+en el orden en el que están escritos.
+
+\begin{minted}[]{haskell}
+    esCuadrado :: Figura -> Bool
+    -- No vale esto?
+    -- esCuadrado (Rectangulo x y) = (x == y)
+    esCuadrado (Rectangulo x y) | (x==y) = True
+    esCuadrado _ = False
+\end{minted}
+
+También se pueden definir funciones parciales (que no estén definidas para todo
+el dominio).
+
+\subsection{Tipos recursivos}
+La definición de un tipo puede tener uno o más parámetros del tipo
+
+\begin{minted}[]{haskell}
+    data Natural = Zero | Succ Natural
+
+    Zero :: Natural                     -- 0
+    succ Zero :: Natural                -- 1
+    succ (succ (succ Zero)) :: Natural  -- 2
+
+    dameNumero :: Natural -> Int
+    dameNumero Zero = 0
+    dameNumero (Succ n) = dameNumero n + 1
+\end{minted}
+
+\subsection{Listas}
+
+Tipo algebráico paramétrico recursivo con dos constructores:
+
+\begin{minted}[]{haskell}
+    [] :: [a]               -- lista vacia
+    (:) :: a -> [a] -> [a]  -- constructor infijo
+
+    -- Ejemplo
+    --   1 : [2, 3] = [1, 2, 3]
+\end{minted}
+
+Pattern matching
+
+\begin{minted}[]{haskell}
+    vacia :: [a] -> Bool
+    vacia [] = True
+    vacia _ = False
+
+    long :: [a] -> Int
+    long [] = 0
+    long x:xs = 1 + long xs
+\end{minted}
+
+\end{document}

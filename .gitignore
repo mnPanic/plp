@@ -5,3 +5,6 @@
 *.fls
 *.log
 *.synctex.gz
+*.out
+*.pyg
+*_minted*/
