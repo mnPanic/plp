@@ -304,4 +304,106 @@ Pattern matching
     long x:xs = 1 + long xs
 \end{minted}
 
+\subsection{No terminación y orden de evaluación}
+
+\begin{minted}[]{haskell}
+    -- No terminación
+    inf1 :: [Int]
+    inf1 = 1 : inf1
+
+    -- Evaluación no estricta
+    const :: a -> b -> a
+    const x y = x
+
+    -- const 42 inf1 -> 42 (pero depende del mecanismo de reducción del
+    -- lenguaje)
+\end{minted}
+
+\section{Evaluación lazy}
+
+el modelo de cómputo de haskell es la \textbf{reducción}. Se reemplaza un
+\textit{redex} por otro usando las ecuaciones orientadas. Un redex (reducible
+expression) es una sub-expresión que no está en forma normal (irreducible).
+
+Un redex debe ser una \textbf{instancia} del lado izquierdo de alguna ecuación y
+será reemplazado por el lado derecho con las variables correspondientes ligadas.
+El resto de la expresión no cambia.
+
+Haskell hace esto hasta llegar a una forma normal, un valor irreducible.
+
+\texttt{const x y = x}. \texttt{const x y} es un redex, y lo reduzco a
+\texttt{x}.
+
+Y cómo selecciono una redex? \textbf{Orden normal} (lazy). Se selecciona el
+redex más externo para el que se pueda conocer que ecuación del programa
+utilizar. En general, primero las funciones más externas y luego los argumentos,
+solo de ser necesarios.
+
+Modo aplicativo: reduce primero todos los argumentos. Se hace en otros lenguajes
+como c.
+
+\section{Esquemas de recursion}
+
+Formas de recursion comunes que uno puede aprovechar usando funciones de alto
+orden.
+
+\subsection{Map}
+
+\begin{minted}[]{haskell}
+-- tal que dobleL xs es la lista que contiene el doble de cada elemento en xs
+dobleL :: [Float] -> [Float]
+dobleL [] = []
+dobleL (x:xs) = 2*x : dobleL xs
+
+-- tal que la lista esParL xs indica si el correspondiente elemento en xs es par
+-- o no
+esParL :: [Int] -> [Bool] 
+esParL [] = []
+esParL (x:xs) = (even x) : esParL xs
+
+-- tal que longL xs es la lista que contiene las longitudes de las listas en xs
+longL :: [[a]] -> [Int]
+longL [] = []
+longL (x:xs) = (length x) : longL xs
+
+-- esquema recursivo de map:
+map :: (a -> b) -> [a] -> [b]
+map _ [] = []
+map g (x:xs) = g x : map g xs
+
+-- Con eso, se pueden reescribir como
+dobleL = map ((*) 2)
+esParL = map even
+longL = map length
+\end{minted}
+
+\subsection{Filter}
+
+% \begin{minted}{haskell}
+% -- tal que negativos xs contiene los elementos negativos de xs
+% negativos :: [Float] -> [Float]
+% negativos [] = []
+% negativos (x:xs)
+%     | x < 0 = x : (negativos xs)
+%     | otherwise = negativos xs
+
+% -- tal que la lista noVacias xs contiene las listas no vacı́as de xs
+% noVacias :: [[a]] -> [[a]]
+% noVacias [] = []
+% noVacias (l:ls)
+%     | (length l > 0) = l : (noVacias ls)
+%     | otherwise = noVacias ls
+
+% -- esquema recursivo:
+% filter :: (a -> Bool) -> [a] -> [a]
+% filter _ [] = []
+% filter p (x:xs) = if (p x) then x : (filter p xs)
+%                   else (filter p xs)
+
+% -- luego quedan
+% negativos = filter (\x -> x < 0)
+% noVacias = filter (\l -> length l != 0)
+% noVacias = filter ((> 0) . length) -- f o g = f(g(x))
+% \end{minted}
+
 \end{document}
