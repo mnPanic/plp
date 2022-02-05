@@ -462,7 +462,7 @@ sumaLong :: [Int] -> (Int, Int)
 sumaLong = foldr (\x (rl, rn) -> (rl + 1, rn + x)) (0, 0)
 \end{minted}
 
-\subsection{\texttt{foldl}}
+\subsection{\texttt{recr}}
 
 \begin{minted}[]{haskell}
 -- dropWhile
@@ -500,5 +500,66 @@ recr z f = first $
         (\x (rs1, rs2) -> (f x rs2 rs1, x:rs2))
         (z, [])
 \end{minted}
+
+\subsection{\texttt{foldl}}
+
+\begin{minted}[]{haskell}
+    foldl :: (b -> a -> b) -> b -> [a] -> b
+    foldl _ z [] = z
+    foldl f z (x:xs) = foldl f (f z x) xs
+\end{minted}
+
+foldr = fold a la derecha, y foldl = fold a la izquierda
+
+\begin{minted}[]{haskell}
+reverse = foldl (\c x -> x:c) []
+reverse = foldl (flip (:)) []
+\end{minted}
+
+Y uno en términos del otro? \textit{Me falta repasar esto porque estaba matado,
+min 2:35:10 del video}
+
+\subsection{Fold sobre estructuras algebrácias}
+
+\begin{minted}[]{haskell}
+-- Arbol binario
+data Arbol a = Hoja a | Nodo a (Arbol a) (Arbol a)
+
+-- Por ej.
+
+Nodo 1 (Hoja 2) (Hoja 3)
+
+-- Es
+--
+--   1
+--  / \
+-- 2   3
+
+-- Y sobre ella podemos querer operaciones, como map
+
+mapA :: (a -> b) -> Arbol a -> Arbol b
+mapA f (Hoja x) = Hoja f x
+mapA f (Nodo x izq der) = Nodo (f x) (mapA f izq) (mapA f der)
+
+-- Y también podemos hacer un fold
+
+foldA :: (a -> b) -> (a -> b -> b -> b) -> Arbol a -> b
+foldA f g (Hoja x) = f x
+foldA f g (Nodo x izq der) = g x (foldA f g izq) (foldA f g der)
+
+sumaA = foldA id (\x rizq rder -> x + rizq + rder)
+contarHojas = foldA 1 (\x rizq rder -> rizq + rder)
+
+-- Arboles generales
+data AG = NodoAG a [AG a]
+
+mapAG :: (a -> b) -> AG a -> AG b
+mapAG f (Nodo AG a as) -> NodoAG (f a) (map (mapAG f) as)
+
+foldAG :: (a -> [b] -> b) -> AG a -> b
+foldAG f (NodoAG a as) = f a (map (foldAG f) as)
+\end{minted}
+
+\textit{Aplicar un fold con un constructor es la identidad}.
 
 \end{document}
