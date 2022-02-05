@@ -379,31 +379,126 @@ longL = map length
 
 \subsection{Filter}
 
-% \begin{minted}{haskell}
-% -- tal que negativos xs contiene los elementos negativos de xs
-% negativos :: [Float] -> [Float]
-% negativos [] = []
-% negativos (x:xs)
-%     | x < 0 = x : (negativos xs)
-%     | otherwise = negativos xs
+\begin{minted}{haskell}
+-- tal que negativos xs contiene los elementos negativos de xs
+negativos :: [Float] -> [Float]
+negativos [] = []
+negativos (x:xs)
+    | x < 0 = x : (negativos xs)
+    | otherwise = negativos xs
 
-% -- tal que la lista noVacias xs contiene las listas no vacı́as de xs
-% noVacias :: [[a]] -> [[a]]
-% noVacias [] = []
-% noVacias (l:ls)
-%     | (length l > 0) = l : (noVacias ls)
-%     | otherwise = noVacias ls
+-- tal que la lista noVacias xs contiene las listas no vacias de xs
+noVacias :: [[a]] -> [[a]]
+noVacias [] = []
+noVacias (l:ls)
+    | (length l > 0) = l : (noVacias ls)
+    | otherwise = noVacias ls
 
-% -- esquema recursivo:
-% filter :: (a -> Bool) -> [a] -> [a]
-% filter _ [] = []
-% filter p (x:xs) = if (p x) then x : (filter p xs)
-%                   else (filter p xs)
+-- esquema recursivo:
+filter :: (a -> Bool) -> [a] -> [a]
+filter _ [] = []
+filter p (x:xs) = if (p x) then x : (filter p xs)
+                  else (filter p xs)
 
-% -- luego quedan
-% negativos = filter (\x -> x < 0)
-% noVacias = filter (\l -> length l != 0)
-% noVacias = filter ((> 0) . length) -- f o g = f(g(x))
-% \end{minted}
+-- luego quedan
+negativos = filter (\x -> x < 0)
+noVacias = filter (\l -> length l != 0)
+noVacias = filter ((> 0) . length) -- f o g = f(g(x))
+
+\end{minted}
+
+\section{Transparencia referencial}
+
+El valor de una expresion en funcional depende solo de sus subexpresiones. Esto
+a diferencia de imperativo que depende del estado.
+
+Si dos expresiones son iguales, denotan el mismo valor bajo el mismo contexto.
+
+\section{Folds}
+
+\subsection{\texttt{foldr}}
+
+\begin{minted}[]{haskell}
+-- Funciones sobre listas
+
+-- sumaL: suma de todos los valores de una lista de enteros
+sumaL :: [Int] -> Int
+sumaL [] = 0
+sumaL (x:xs) = x + (sumaL xs)
+
+-- concat: la concatenación de todos los elementos de una lista de listas
+concat :: [[a]] -> [a]
+concat [] = []
+concat (l:ls) = l ++ (concat ls)
+
+-- reverso: el reverso de una lista
+reverso :: [a] -> [a]
+reverso [] = []
+reverso (x:xs) = (reverso xs) ++ [x]
+
+-- Esquema de recursión
+foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr _ z [] = z
+foldr f z (x:xs) = f x (foldr f z xs)
+
+-- Luego, con esto
+sumaL = foldr (+) 0
+concat = foldr (++) []
+reverso = foldr (\x rec -> rec ++ [x]) []
+reverso = foldr ( (flip (++)) . (:[])) []
+
+-- Hasta podemos definir map y filter. El fold es más general que el map y
+-- filter
+map f = foldr (\x rec -> f x : rec) []
+map f = foldr ((:) . f) []
+
+-- (:) . f :: a -> [b] -> [b]
+-- ((:) . f) x  = (f x) :
+
+filter p = foldr (\x rec -> if p x then x : rec else rec) []
+
+-- Longitud y suma con una sola pasada sobre la lista
+sumaLong :: [Int] -> (Int, Int)
+sumaLong = foldr (\x (rl, rn) -> (rl + 1, rn + x)) (0, 0)
+\end{minted}
+
+\subsection{\texttt{foldl}}
+
+\begin{minted}[]{haskell}
+-- dropWhile
+dropWhile :: (a -> Bool) -> [a] -> [a]
+dropWhile _ [] = []
+dropWhile p (x:xs) = if p x then dropWhile p xs else x:xs
+
+-- ejemplo
+dropWhile even [2, 4, 1, 6] = [1, 6]
+
+-- drop while cuando se termina de cumplir devuelvo todo lo que viene "a la
+-- derecha", pero cuando hago fold, lo que está a la derecha ya pasó por la
+-- recursión.
+
+dw p = first $ (foldr (\x (r1, r2)
+    -> (if p x then r1 else x: r2, x: r2 ) ), ([], []))
+
+-- Otro esquema más poderoso
+g :: [a] -> b
+g [] = z
+g (x:xs) = f x xs (g xs)
+
+recr :: b -> (a -> [a] -> b -> b) -> [a] -> b
+recr z _ [] = z
+recr z f (x:xs) = f x xs (rec z f xs)
+
+dropWhile p = recr [] (\x xs rec -> if p x then rec else x:xs)
+
+-- foldr en terminos de recr?
+foldr f z = recr z (\x xs rec -> f x rec)
+
+-- recr en términos de foldr?
+recr z f = first $
+    foldr
+        (\x (rs1, rs2) -> (f x rs2 rs1, x:rs2))
+        (z, [])
+\end{minted}
 
 \end{document}
