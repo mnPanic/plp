@@ -8,6 +8,10 @@
 \usepackage{abraces}    % \aunderbrace y \aoverbrace
 \usepackage{mathtools}  % \mathclap
 
+% Para hacer derivaciones y eso
+% https://personal.utdallas.edu/~hamlen/trfrac.pdf
+\usepackage{tfrac}
+
 % Figuras
 \usepackage{tikz}                   % gráficos
 \usepackage{float}                  % [H]
@@ -66,12 +70,35 @@
 \newcommand{\xmark}{\ding{55}}
 
 
+% mate general
+\newcommand{\eqdef}{\overset{\text{def}}{=}}
+
+% calculo lambda
 \newcommand{\lambdab}{\lambda^b}
-\newcommand{\func}[2]{#1 \to #2}
-\newcommand{\lifthenelse}[3]{\ if\ #1 \ then\ #2 \ else\ #3}
-\newcommand{\flambda}[3]{\lambda #1 : #2 . #3}
-\newcommand{\defaultlambda}{\flambda{x}{\sigma}{M}}
-\newcommand{\app}[2]{#1 \ #2}
+\newcommand{\tfunc}[2]{#1 \to #2}
+\newcommand{\ifte}[3]{\ if\ #1 \ then\ #2 \ else\ #3}
+\newcommand{\abs}[3]{\lambda #1 : #2 . #3}
+\newcommand{\app}[2]{#1 \ #2} % aplicación
+\newcommand{\sust}[2]{#1 \{ #2 \}}
+
+\newcommand{\tipa}[3]{#1 \rhd #2 : #3} % \vartriangleright
+\newcommand{\tienetipo}[3]{#1 : #2 \in #3}
+\newcommand{\Gtipa}[2]{\tipa{\Gamma}{#1}{#2}}
+\newcommand{\GStipa}[2]{\tipa{\Gamma|\Sigma}{#1}{#2}}
+
+\newcommand{\reduce}[2]{#1 \to #2}
+
+\newcommand{\deriv}[3]{\trfrac[(#1)]{#2}{#3}}
+\newcommand{\derivok}[1]{\trfrac[]{\checkmark}{#1}}
+
+% resolución
+\newcommand{\resol}[2]{\frac{#1}{#2}}
+
+% subtipado
+\newcommand{\subt}[2]{#1 <: #2}
+
+\newcommand{\ligada}[1]{\underbrace{#1}_{\text{ligada}}}
+\newcommand{\libre}[1]{\underbrace{#1}_{\text{libre}}}
 
 \author{Manuel Panichelli}
 \title{Notas para final de PLP}
@@ -564,21 +591,21 @@ La máquina de turing es más de estado, y este con reducción de expresiones.
     de booleano) son
 
     \[
-        \sigma, \tau ::= Bool \mid \func{\sigma}{\tau}
+        \sigma, \tau ::= Bool \mid \tfunc{\sigma}{\tau}
     \]
 
     Informalmente, 
     
     \begin{itemize}
         \item \textit{Bool} es el tipo de los booleanos, y
-        \item $\func{\sigma}{\tau}$ es el tipo de las funciones de tipo $\sigma$ en tipo $\tau$.
+        \item $\tfunc{\sigma}{\tau}$ es el tipo de las funciones de tipo $\sigma$ en tipo $\tau$.
     \end{itemize}
 
     \begin{example*}
         Ejemplos:
         \begin{itemize}
-            \item $\func{Bool}{Bool}$
-            \item $\func{\func{Bool}{Bool}}{Bool}$
+            \item $\tfunc{Bool}{Bool}$
+            \item $\tfunc{\tfunc{Bool}{Bool}}{Bool}$
         \end{itemize}
     \end{example*}
 \end{definition}
@@ -593,21 +620,21 @@ La máquina de turing es más de estado, y este con reducción de expresiones.
         M, N, P, Q ::&= x \\
             &\mid \quad true \\
             &\mid \quad false \\
-            &\mid \quad \lifthenelse{M}{P}{Q} \\
-            &\mid \quad \defaultlambda \\
+            &\mid \quad \ifte{M}{P}{Q} \\
+            &\mid \quad \abs{x}{\sigma}{M} \\
             &\mid \quad \app{M}{N} \\
     \end{align*}
 
     \begin{example*} Ejemplos:
         \begin{itemize}
-            \item $\flambda{x}{Bool}{x}$ \cmark
-            \item $\flambda{x}{Bool}{\lifthenelse{x}{false}{true}}$ \cmark
+            \item $\abs{x}{Bool}{x}$ \cmark
+            \item $\abs{x}{Bool}{\ifte{x}{false}{true}}$ \cmark
             \item
-            $\flambda{f}{\func{Bool}{\func{Bool}{Bool}}}{\flambda{x}{Bool}{\app{f}{x}}}$
+            $\abs{f}{\tfunc{Bool}{\tfunc{Bool}{Bool}}}{\abs{x}{Bool}{\app{f}{x}}}$
             \cmark
-            \item $(\flambda{f}{\func{Bool}{Bool}}{\app{f}{true}})
-            (\flambda{y}{Bool}{y})$ \cmark
-            \item $\app{true}{(\flambda{x}{Bool}{x})}$ \cmark
+            \item $(\abs{f}{\tfunc{Bool}{Bool}}{\app{f}{true}})
+            (\abs{y}{Bool}{y})$ \cmark
+            \item $\app{true}{(\abs{x}{Bool}{x})}$ \cmark
             \item $\app{x}{y}$ \cmark
             \item $\lambda x : true$ \xmark
         \end{itemize}
@@ -618,7 +645,259 @@ La máquina de turing es más de estado, y este con reducción de expresiones.
 
 Es un sistema formal de deducción o derivación que utiliza axiomas y reglas de
 inferencia para caracterizar un subconjunto de los términos llamados
-\textbf{tipados}.
+\textbf{tipados}. Nos permite quedarnos con algunos y rechazar otros términos en
+base a lo que consideremos correcto.
 
-Nos permite quedarnos con algunos y rechazar otros en abse a lo que consideremos correcto.
+Definimos una \textbf{relación de tipado} en base a reglas de inferencia.
+\begin{itemize}
+    \item Los \textbf{axiomas de tipado} establecen que ciertos \textbf{juicios
+    de tipado} son derivables.
+    \item Las \textbf{reglas de tipado} establecen que ciertos \textbf{juicios
+    de tipado} son derivables siempre y cuando ceiertos otros lo sean.  
+\end{itemize}
+
+\begin{definition}[Variables libres]
+Una variable puede ocurrir \textbf{libre} o ligada en un término. Decimos que
+$x$ ocurre \textbf{libre} si no se encuentra bajo el alcance de una ocurrencia
+de $\lambda x$. Caso contrario ocurre ligada.
+
+Ejemplos:
+
+\begin{itemize}
+    \item $\abs
+        {x}{Bool}
+        {\ifte{\ligada{x}}{true}{false}}$
+    \item $\abs
+        {x}
+        {Bool}
+        {\abs{y}{Bool}{\ifte{true}{\ligada{x}}{\ligada{y}}}}$
+    \item $\abs{x}{Bool}{\ifte{\ligada{x}}{true}{\libre{y}}}$
+    \item $\app{(\abs{x}{Bool}{\ifte{\ligada{x}}{true}{false}})}{\libre{x}}$
+\end{itemize}
+
+La definición formal es a partir de cada término del lambda cálculo por pattern
+matching. FV = Free Variable
+
+\begin{align*}
+    FV(x) &\eqdef \{ x \} \\
+    FV(true) = FV(false) &\eqdef \emptyset \\
+    FV(\ifte{M}{P}{Q}) &\eqdef FV(M) \cup FV(P) \cup FV(Q) \\
+    FV(\app{M}{N}) &\eqdef FV(M) \cup FV(N) \\
+    FV(\abs{x}{\sigma}{M}) &\eqdef FV(M) \setminus \{ x \}
+\end{align*}
+\end{definition}
+
+\begin{definition}[Juicio de tipado]
+    Un \textbf{juicio de tipado} es una expresión de la forma
+    $\tipa{\Gamma}{M}{\sigma}$, que se lee \textit{``El término M tiene el
+    tipo $\sigma$ asumiendo el contexto de tipado $\Gamma$''}.
+
+    Un \textbf{contexto de tipado} es un conjunto de pares $x_i : \sigma_i$,
+    notado $\{ x_1 : \sigma_1, \dots, x_n : \sigma_n \}$ donde los $x_i$ son
+    distintos. Usamos las letras $\Gamma, \Delta, \dots$ para contextos de
+    tipado.
+
+    A las variables se les anota un tipo. Uno pone las asunciones que tiene
+    sobre el tipo de algunas variables, como $x : Bool$.
+\end{definition}
+
+\begin{definition}[Axiomas de tipado de $\lambdab$]
+
+Son guiadas por sintaxis al igual que las variables libres
+
+\[
+    \deriv{T-True}{}{\Gtipa{true}{Bool}} \quad
+    \deriv{T-False}{}{\Gtipa{false}{Bool}}
+\]
+
+(para cualquier contexto de tipado $\Gamma$)
+
+\[
+    \deriv
+        {T-Var}
+        {\tienetipo{x}{\sigma}{\Gamma}}
+        {\Gtipa{x}{\sigma}}
+\]
+
+\[
+    \deriv
+        {T-If}
+        {
+            \Gtipa{M}{Bool} \quad
+            \Gtipa{P}{\sigma} \quad
+            \Gtipa{Q}{\sigma}
+        }
+        {\Gtipa{\ifte{M}{P}{Q}}{\sigma}}
+\]
+
+P y Q tienen que tener el mismo tipo porque queremos que la expresion siempre
+tipe a lo mismo.
+
+\[
+    \deriv
+        {T-Abs}
+        {\tipa{\Gamma, x : \sigma}{M}{\tau}}
+        {\Gtipa{\abs{x}{\sigma}{M}}{\tfunc{\sigma}{\tau}}}
+    \quad
+    \deriv
+        {T-App}
+        {
+            \Gtipa{M}{\tfunc{\sigma}{\tau}} \quad
+            \Gtipa{N}{\sigma}
+        }
+        {\Gtipa{\app{M}{N}}{\tau}}
+\]
+\end{definition}
+
+Si $\Gtipa{M}{\sigma}$ puede derivarse usando los axiomas y reglas de tipado,
+decimos que es \textbf{derivable}, y decimos que $M$ es \textbf{tipable} si el
+juicio de tipado $\Gtipa{M}{\sigma}$ puede derivarse para algún $\Gamma$ y
+$\sigma$.
+
+Ejemplos:
+
+\begin{itemize}
+    \item $\abs{x}{Bool}{x} : \textcolor{blue}{\tfunc{Bool}{Bool}}$
+    
+    \[
+    \deriv
+        {T-Abs}
+        {
+            \deriv
+                {T-Var}
+                {\derivok{x : Bool \in \Gamma'}}
+                {
+                    \tipa{\Gamma' = \Gamma \cap \{x : Bool\}}{x}{Bool}
+                }
+        }
+        {\Gtipa{\abs{x}{Bool}{x}}{\textcolor{blue}{\tfunc{Bool}{Bool}}}}
+    \]
+
+    \item $\abs{x}{Bool}{\ifte{x}{false}{true}}$
+    \item $\abs{f}{\tfunc{Bool}{\tfunc{Bool}{Bool}}}{\abs{x}{Bool}{\app{f}{x}}}$
+    \item $(\abs{f}{\tfunc{Bool}{Bool}} \app{f}{true})(\abs{y}{Bool}{y})$
+    \item $\app{true}{(\abs{x}{Bool}{x})}$. No va a tipar nunca, porque $true :
+    Bool$ y para $T-App$ necesitamos que sea $\tfunc{\sigma}{\tau}$.
+    \item $\app{x}{y}$. Para usar T-App, x por sintaxis solo aplica a T-Var. La
+    única forma de que pueda aplicar x con y, x tiene que ser tipo flecha. Pero
+    es una variable, entonces solo funcionaría si tenemos como asunción de tipo
+    de x como función en $\Gamma$. Sin eso no se puede tipar.
+\end{itemize}
+
+\subsection{Resultados básicos}
+
+\textit{Se pueden probar por inducción en la longitud de las reglas}
+
+\begin{proposition}[Unicidad de tipos]
+    Si $\Gtipa{M}{\sigma}$ y $\Gtipa{M}{\tau}$ son derivables, entonces $\sigma
+    = \tau$.
+
+    \textit{Si una expresión tiene un tipo, ese tipo es único.}
+\end{proposition}
+
+\begin{proposition}[Weakening + Strengthening]
+    Si $\Gtipa{M}{\sigma}$ es derivable y $\Gamma \cap \Gamma'$ contiene a todas
+    las variables libres de $M$, entonces $\tipa{\Gamma'}{M}{\sigma}$.
+
+    \textit{Puedo agrandar o achicar el contexto de tipo siempre y cuando contenga las mismas variables libres.}
+\end{proposition}
+
+\subsection{Semántica}
+
+Habiendo definido la sintaxis de $\lambdab$, nos interesa formular como se
+\textbf{evalúan} o \textbf{ejecutan} los términos. Hay varias maneras de definir
+\textbf{rigurosamente} la semántica de un lenguaje de programación, nosotros
+vamos a definir una \textbf{semántica operacional}.
+
+\begin{itemize}
+    \item Denotacional. Darle una \textit{denotación} a cada símbolo del
+    lenguaje, qué denota matemáticamente. Y uno define la semántica en términos
+    de como las funciones van denotando cosas, con recursión o puntos fijos.
+    \item Axiomática. Cuando cursamos algo1, definimos pre y pos condiciones.
+    Predicaque definen el significado de una operación. Las triplas de hoare y
+    esas cosas.
+    \item \textbf{Operacional} consiste en
+    \begin{itemize}
+        \item interpretar a los \textbf{términos como estados} de una máquina
+        abstracta, y
+        \item definir una \textbf{función de transición} que indica dado un
+        estado cuál es el siguiente. 
+    \end{itemize}
+\end{itemize}
+
+El \textbf{significado} de un término $M$ es el estado final que alcanza la
+máquina al comenzar con $M$ como estado inicial. Hay dos formas de definir
+semántica operacional,
+
+\begin{itemize}
+    \item \textbf{Small-step}: la función de transición describe un paso de
+    computación. Esta vamos a hacer nosotros.
+    \item \textbf{Big-step} (o \textbf{Natural Semantics}): la función de
+    transición, en un paso, evalúa el término a su resultado.
+\end{itemize}
+
+\begin{definition}[Juicios]
+    La formulación se hace a través de \textbf{juicios de evaluación}
+    $\reduce{M}{N}$, que se leen \textit{``el término M reduce, en un paso, al
+    término N''}.
+
+    El significado de un juicio de evaluación se establece a través de:
+
+    \begin{itemize}
+        \item \textbf{Axiomas de evaluación}, que establecen que ciertos juicios
+        de evaluación son derivables.
+        \item \textbf{Reglas de evaluación}, que establecen que ciertos juicios
+        de evaluación son derivables siempre y cuando ciertos otros lo sean
+    \end{itemize}
+
+    \textit{(análogo a axiomas y reglas de tipado)}
+\end{definition}
+
+
+\subsubsection{Semántica operacional small-step de $\lambdab$}
+Además de introducir la función de transición es necesario introducir también
+los \textbf{valores}, los posibles resultados de evaluación de términos
+bien-tipados (derivables) y cerrados (sin variables libres).
+
+Valores
+
+\[
+    V ::= true \mid false
+\]
+
+todo término bien-tipado y cerrado de tipo Bool evalúa, en cero
+(directamente) o más pasos, a true o false. Se puede demostrar formalmente.
+
+Juicio de evaluación en un paso:
+
+\[
+    \deriv{E-IfTrue}
+        {}
+        {
+            \reduce
+                {\ifte{true}{M_2}{M_3}}
+                {M_2}
+        }
+\]
+\[
+    \deriv{E-IfFalse}
+        {}
+        {
+            \reduce
+                {\ifte{false}{M_2}{M_3}}
+                {M_3}
+        }
+\]
+\[
+    \deriv{E-If}
+        {\reduce{M_1}{M_1'}}
+        {
+            \reduce
+                {\ifte{M_1}{M_2}{M_3}}
+                {\ifte{M_1'}{M_2}{M_3}}
+        }
+\]
+
+% llegué hasta 1:02:47
+
 \end{document}
