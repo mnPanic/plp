@@ -26,31 +26,6 @@
 % https://tex.stackexchange.com/questions/367332/minted-error-undefined-control-sequence-pyg-with-texmaker
 \usepackage[cache=false]{minted}     % código
 
-\usepackage{listings}   % codigo
-
-\lstset{
-  frame=none,
-  xleftmargin=2pt,
-  stepnumber=1,
-  %numbers=left,
-  %numbersep=5pt,
-  %numberstyle=\ttfamily\tiny\color[gray]{0.3},
-  belowcaptionskip=\bigskipamount,
-  captionpos=b,
-  escapeinside={*'}{'*},
-  language=haskell,
-  tabsize=2,
-  emphstyle={\bf},
-  commentstyle=\it,
-  stringstyle=\mdseries\rmfamily,
-  showspaces=false,
-  keywordstyle=\bfseries\rmfamily,
-  columns=flexible,
-  basicstyle=\small\sffamily,
-  showstringspaces=false,
-  morecomment=[l]\%,
-}
-
 \usetikzlibrary{arrows,positioning,automata,shadows,fit,shapes}
 
 % Teoremas, corolarios, etc.
@@ -69,8 +44,8 @@
 \newtheorem{definition}{Def.}[chapter]
 \newtheorem*{definition*}{Def}
 
-\newtheorem{exmp}{Ejemplo}[chapter]
-\newtheorem*{exmp*}{Ejemplo}
+\newtheorem{example}{Ejemplo}[chapter]
+\newtheorem*{example*}{Ejemplo}
 
 % https://tex.stackexchange.com/questions/118173/how-to-write-ceil-and-floor-in-latex
 \DeclarePairedDelimiter\ceil{\lceil}{\rceil}
@@ -84,6 +59,19 @@
 \newenvironment{nota}[1]
     {\begin{leftbar}\textbf{#1}}
     {\end{leftbar}}
+
+% https://tex.stackexchange.com/questions/42619/x-mark-to-match-checkmark/42620
+\usepackage{pifont} % http://ctan.org/pkg/pifont
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+
+\newcommand{\lambdab}{\lambda^b}
+\newcommand{\func}[2]{#1 \to #2}
+\newcommand{\lifthenelse}[3]{\ if\ #1 \ then\ #2 \ else\ #3}
+\newcommand{\flambda}[3]{\lambda #1 : #2 . #3}
+\newcommand{\defaultlambda}{\flambda{x}{\sigma}{M}}
+\newcommand{\app}[2]{#1 \ #2}
 
 \author{Manuel Panichelli}
 \title{Notas para final de PLP}
@@ -122,7 +110,7 @@
     instrucciones para cambiar el estado.
 \end{definition}
 
-\section{Programación funcional}
+\subsection{Programación funcional}
 
 Definiciones:
 
@@ -319,7 +307,7 @@ Pattern matching
     -- lenguaje)
 \end{minted}
 
-\section{Evaluación lazy}
+\subsection{Evaluación lazy}
 
 el modelo de cómputo de haskell es la \textbf{reducción}. Se reemplaza un
 \textit{redex} por otro usando las ecuaciones orientadas. Un redex (reducible
@@ -342,12 +330,12 @@ solo de ser necesarios.
 Modo aplicativo: reduce primero todos los argumentos. Se hace en otros lenguajes
 como c.
 
-\section{Esquemas de recursion}
+\subsection{Esquemas de recursion}
 
 Formas de recursion comunes que uno puede aprovechar usando funciones de alto
 orden.
 
-\subsection{Map}
+\subsubsection{Map}
 
 \begin{minted}[]{haskell}
 -- tal que dobleL xs es la lista que contiene el doble de cada elemento en xs
@@ -377,7 +365,7 @@ esParL = map even
 longL = map length
 \end{minted}
 
-\subsection{Filter}
+\subsubsection{Filter}
 
 \begin{minted}{haskell}
 -- tal que negativos xs contiene los elementos negativos de xs
@@ -407,16 +395,16 @@ noVacias = filter ((> 0) . length) -- f o g = f(g(x))
 
 \end{minted}
 
-\section{Transparencia referencial}
+\subsection{Transparencia referencial}
 
 El valor de una expresion en funcional depende solo de sus subexpresiones. Esto
 a diferencia de imperativo que depende del estado.
 
 Si dos expresiones son iguales, denotan el mismo valor bajo el mismo contexto.
 
-\section{Folds}
+\subsection{Folds}
 
-\subsection{\texttt{foldr}}
+\subsubsection{\texttt{foldr}}
 
 \begin{minted}[]{haskell}
 -- Funciones sobre listas
@@ -462,7 +450,7 @@ sumaLong :: [Int] -> (Int, Int)
 sumaLong = foldr (\x (rl, rn) -> (rl + 1, rn + x)) (0, 0)
 \end{minted}
 
-\subsection{\texttt{recr}}
+\subsubsection{\texttt{recr}}
 
 \begin{minted}[]{haskell}
 -- dropWhile
@@ -501,7 +489,7 @@ recr z f = first $
         (z, [])
 \end{minted}
 
-\subsection{\texttt{foldl}}
+\subsubsection{\texttt{foldl}}
 
 \begin{minted}[]{haskell}
     foldl :: (b -> a -> b) -> b -> [a] -> b
@@ -519,7 +507,7 @@ reverse = foldl (flip (:)) []
 Y uno en términos del otro? \textit{Me falta repasar esto porque estaba matado,
 min 2:35:10 del video}
 
-\subsection{Fold sobre estructuras algebrácias}
+\subsubsection{Fold sobre estructuras algebrácias}
 
 \begin{minted}[]{haskell}
 -- Arbol binario
@@ -562,4 +550,75 @@ foldAG f (NodoAG a as) = f a (map (foldAG f) as)
 
 \textit{Aplicar un fold con un constructor es la identidad}.
 
+\section{Cálculo Lambda Tipado}
+
+Es el formalismo que está detrás de la programación funcional. Es un modelo de
+cómputo basado en \textbf{funciones}, introducido por Alonzo Church en 1934. Es
+computacionalmente completo (turing completo) y nosotros vamos a estudiar la
+variante tipada (Church, 1941.)
+
+La máquina de turing es más de estado, y este con reducción de expresiones.
+
+\begin{definition}[Tipos]
+    Las \textbf{expresiones de tipos} (o tipos) de $\lambdab$ (lambda cálculo b
+    de booleano) son
+
+    \[
+        \sigma, \tau ::= Bool \mid \func{\sigma}{\tau}
+    \]
+
+    Informalmente, 
+    
+    \begin{itemize}
+        \item \textit{Bool} es el tipo de los booleanos, y
+        \item $\func{\sigma}{\tau}$ es el tipo de las funciones de tipo $\sigma$ en tipo $\tau$.
+    \end{itemize}
+
+    \begin{example*}
+        Ejemplos:
+        \begin{itemize}
+            \item $\func{Bool}{Bool}$
+            \item $\func{\func{Bool}{Bool}}{Bool}$
+        \end{itemize}
+    \end{example*}
+\end{definition}
+
+\begin{definition}[Terminos]
+    Los términos se escriben con las siguientes reglas de sintaxis.
+
+    Sea $\chi$  un conjunto infinito enumerable de variables, y $x \in \chi$.
+    Los \textbf{términos} de $\lambdab$ están dados por,
+
+    \begin{align*}
+        M, N, P, Q ::&= x \\
+            &\mid \quad true \\
+            &\mid \quad false \\
+            &\mid \quad \lifthenelse{M}{P}{Q} \\
+            &\mid \quad \defaultlambda \\
+            &\mid \quad \app{M}{N} \\
+    \end{align*}
+
+    \begin{example*} Ejemplos:
+        \begin{itemize}
+            \item $\flambda{x}{Bool}{x}$ \cmark
+            \item $\flambda{x}{Bool}{\lifthenelse{x}{false}{true}}$ \cmark
+            \item
+            $\flambda{f}{\func{Bool}{\func{Bool}{Bool}}}{\flambda{x}{Bool}{\app{f}{x}}}$
+            \cmark
+            \item $(\flambda{f}{\func{Bool}{Bool}}{\app{f}{true}})
+            (\flambda{y}{Bool}{y})$ \cmark
+            \item $\app{true}{(\flambda{x}{Bool}{x})}$ \cmark
+            \item $\app{x}{y}$ \cmark
+            \item $\lambda x : true$ \xmark
+        \end{itemize}
+    \end{example*}
+\end{definition}
+
+\subsection{Sistema de tipado}
+
+Es un sistema formal de deducción o derivación que utiliza axiomas y reglas de
+inferencia para caracterizar un subconjunto de los términos llamados
+\textbf{tipados}.
+
+Nos permite quedarnos con algunos y rechazar otros en abse a lo que consideremos correcto.
 \end{document}
