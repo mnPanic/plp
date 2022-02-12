@@ -2,6 +2,7 @@
 
 % Matemática
 \usepackage{amsmath}    % símbolos matemáticos
+\usepackage{amssymb}    % símbolos matemáticos
 \usepackage{amsthm}     % teoremas
 \usepackage{amsfonts}   % \mathbb
 \usepackage{bm}         % bold math (https://ctan.org/pkg/bm)
@@ -48,6 +49,9 @@
 \newtheorem{definition}{Def.}[chapter]
 \newtheorem*{definition*}{Def}
 
+\newtheorem{observation}{Obs.}[chapter]
+\newtheorem*{observation*}{Obs}
+
 \newtheorem{example}{Ejemplo}[chapter]
 \newtheorem*{example*}{Ejemplo}
 
@@ -72,6 +76,8 @@
 
 % mate general
 \newcommand{\eqdef}{\overset{\text{def}}{=}}
+\newcommand{\aeq}{=_\alpha}
+\newcommand{\naeq}{\neq_\alpha}
 
 % calculo lambda
 \newcommand{\lambdab}{\lambda^b}
@@ -80,6 +86,7 @@
 \newcommand{\abs}[3]{\lambda #1 : #2 . #3}
 \newcommand{\app}[2]{#1 \ #2} % aplicación
 \newcommand{\sust}[2]{#1 \{ #2 \}}
+\newcommand{\sustOne}[3]{#1 \{ #2 \leftarrow #3 \}}
 
 \newcommand{\tipa}[3]{#1 \rhd #2 : #3} % \vartriangleright
 \newcommand{\tienetipo}[3]{#1 : #2 \in #3}
@@ -87,6 +94,11 @@
 \newcommand{\GStipa}[2]{\tipa{\Gamma|\Sigma}{#1}{#2}}
 
 \newcommand{\reduce}[2]{#1 \to #2}
+\newcommand{\doesntReduce}[2]{#1 \not\to #2}
+\newcommand{\reducesTo}[1]{\to_\text{(#1)}}
+
+\newcommand{\reduceManyTo}{\twoheadrightarrow}
+\newcommand{\reduceMany}[2]{#1 \reduceManyTo #2}
 
 \newcommand{\deriv}[3]{\trfrac[(#1)]{#2}{#3}}
 \newcommand{\derivok}[1]{\trfrac[]{\checkmark}{#1}}
@@ -879,6 +891,7 @@ Juicio de evaluación en un paso:
                 {M_2}
         }
 \]
+\vspace{0.5cm}
 \[
     \deriv{E-IfFalse}
         {}
@@ -888,6 +901,7 @@ Juicio de evaluación en un paso:
                 {M_3}
         }
 \]
+\vspace{0.5cm}
 \[
     \deriv{E-If}
         {\reduce{M_1}{M_1'}}
@@ -898,6 +912,301 @@ Juicio de evaluación en un paso:
         }
 \]
 
-% llegué hasta 1:02:47
+Ejemplo de derivación
 
+\begin{align*}
+    &\ifte
+        {(\ifte{false}{false}{true})}
+        {false}
+        {true}\\
+    &\reducesTo{E-If, E-IfFalse}
+        \ifte{true}{false}{true}\\
+    &\reducesTo{E-IfTrue} false
+\end{align*}
+
+\begin{observation}
+    No existe M tal que $\reduce{true}{M}$ o $\reduce{false}{M}$. No los puedo reducir más.
+\end{observation}
+
+\begin{observation}
+    La estrategia de evaluación corresponde con el orden habitual de los
+    lenguajes de programación.
+
+    \begin{enumerate}
+        \item Primero evaluar la guarda del condicional.
+        \item Una vez que la guarda sea un valor, seguir con la expresión del
+        then o del else, según corresponda.
+    \end{enumerate}
+
+    Por ejemplo,
+    \begin{align*}
+        &\ifte
+            {true}
+            {(\ifte{false}{false}{true})}
+            {true}\\
+        \textcolor{red}{\not\to} &\ifte{true}{true}{true}
+    \end{align*}
+
+    y,
+
+    \begin{align*}
+        &\ifte
+            {true}
+            {(\ifte{false}{false}{true})}
+            {true}\\
+        \textcolor{teal}{\to} &\ifte{false}{false}{true}
+    \end{align*}
+\end{observation}
+
+\begin{lemma}[Determinismo del juicio de evaluación en un paso]
+    Si $\reduce{M}{M'}$ y $\reduce{M}{M''}$, entonces $M' = M''$.
+\end{lemma}
+
+\begin{definition}[Forma normal]
+    Una forma normal es un término que no puede reducirse o evaluarse más. i.e
+    $M$ tal que no existe $N$, $\reduce{M}{N}$.
+\end{definition}
+\begin{lemma}
+    Todo valor está en forma normal.
+
+    \textit{No vale el recíproco en $\lambdab$, puedo tener cosas que están en forma normal pero que no sean valores, como términos que no estén bien tipados o que no sean cerrados. Ejemplos:}
+    
+    \begin{itemize}
+        \item $\ifte{x}{true}{false}$: No tengo forma de reducir el x.
+        \item $x$. No tengo forma de reducirla pero no es ni true ni false
+        \item $\app{true}{false}$.
+    \end{itemize}
+    
+    \textit{Pero si vale en el cálculo de las expresiones booleanas cerradas.}
+\end{lemma}
+
+\subsubsection{Evaluación en muchos pasos}
+
+El juicio de \textbf{evaluación en muchos pasos} $\reduceManyTo$ es la
+clausura reflexiva, transitiva de $\to$. Es decir, la menor relación tal que
+
+\begin{enumerate}
+    \item Si $\reduce{M}{M'}$, entonces $\reduceMany{M}{M'}$
+    \item $\reduceMany{M}{M}$ para todo $M$.
+    \item Si $\reduceMany{M}{M'}$ y $\reduceMany{M'}{M''}$, entonces $\reduceMany{M}{M''}$.
+\end{enumerate}
+
+\textit{captura la evolución en 0 y 1 pasos y la transitiva.}
+
+\begin{example*}
+    \[
+    \reduceMany
+        {\ifte{true}{(\ifte{false}{false}{true})}{true}}
+        {true}
+    \]
+\end{example*}
+
+\begin{proposition}[Unicidad de formas normales]
+    Si $\reduceMany{M}{U}$ y $\reduceMany{M}{V}$ con U, V formas normales,
+    entonces $U = V$
+
+    \textit{aplicamos las reglas y llegamos a dos terminos entonces tienen que
+    ser iguales.}
+\end{proposition}
+
+\begin{proposition}[Terminación]
+    Para todo $M$ existe una forma normal $N$ tal que $\reduceMany{M}{N}$.
+
+    \textit{no me quedo ciclando, en una cantidad finita de pasos llego a una forma normal.}
+\end{proposition}
+
+\subsubsection{Extendiendo semántica operacional con funciones}
+
+Valores
+
+\[
+    V ::= true \mid false \mid \textcolor{blue}{\abs{x}{\sigma}{M}}
+\]
+
+vamos a introducir una noción de evaluación tal que valgan los lemas previos y
+también el siguiente resultado
+
+\begin{theorem}
+    Todo término bien tipado y cerrado de tipo
+    \begin{itemize}
+        \item $Bool$ evalúa, en \textbf{cero o más} pasos a true o false.
+        \item $\tfunc{\sigma}{\tau}$ en \textbf{cero o más pasos} a
+        $\abs{x}{\sigma}{M}$, para alguna variable x y término M.
+    \end{itemize}
+\end{theorem}
+
+Juicios de evaluación en un paso (Además de E-IfTrue, E-IfFalse y E-If):
+
+\[
+    \deriv{E-App1 / $\mu$}
+        {\reduce{M_1}{M_1'}}
+        {
+            \reduce
+                {\app{M_1}{M_2}}
+                {\app{M_1'}{M_2}}
+        }
+    \quad\quad
+    \text{\textit{primero reducís la función}}
+\]
+
+\[
+    \deriv{E-App2 / $\nu$}
+        {\reduce{M_2}{M_2'}}
+        {
+            \reduce
+                {
+                    \app
+                        {\textcolor{red}{(\abs{x}{\sigma}{M})}}
+                        {M_2}
+                }
+                {
+                    \app
+                        {\textcolor{red}{(\abs{x}{\sigma}{M})}}
+                        {M_2'}
+                }
+        }
+    \quad\quad
+    \text{\textit{luego reducís el "argumento"}}
+\]
+
+\[
+    \deriv{E-AppAbs / $\beta$}
+        {}
+        {
+            \reduce
+                {(\abs{x}{\sigma}{M}) \textcolor{red}{V}}
+                {\sustOne{M}{x}{\textcolor{red}{V}}}
+        }
+    \quad\quad
+    \text{\textit{primero reducís la función}}
+\]
+
+\subsubsection{Sustitución}
+
+La operación,
+
+\[
+    \sustOne{M}{x}{N}
+\]
+
+quiere decir \textit{"Sustituir todas las ocurrencias \textbf{libres} de x en el
+término M por el término N}. Es una operación importante que se usa para darle
+semántica a la aplicación de funciones. Es sencilla de definir pero requiere
+cuidado en el tratamiento de los ligadores de variables ($\lambda x$).
+
+Se define por sintaxis,
+
+\begin{align*}
+    \sustOne{x}{x}{N} &\eqdef N \\
+    \sustOne{a}{x}{N} 
+        &\eqdef
+        a \ \text{ si } a\in \{true,\ false \} \cup \chi \setminus \{x \} \\
+    \sustOne{(\ifte{M}{P}{Q})}{x}{N}
+        &\eqdef
+        \ifte
+            {\sustOne{M}{x}{N}}
+            {\sustOne{P}{x}{N}}
+            {\sustOne{N}{x}{N}} \\
+    \sustOne{(\app{M_1}{M_2})}{x}{N}
+        &\eqdef
+        \app{\sustOne{M_1}{x}{N}}{\sustOne{M_2}{x}{N}}\\
+    \sustOne{(\abs{y}{\sigma}{M})}{x}{N}
+        &\eqdef
+        \abs{y}{\sigma}{\sustOne{M}{x}{N}} \ x \neq y, y \notin FV(N)
+\end{align*}
+
+\begin{enumerate}
+    \item NB: La condición $x\neq y, y \notin FV(N)$ \textbf{siempre} puede
+    cumplirse renombrando apropiadamente.
+    \item Técnicamente, la sustitución está definida sobre \textbf{clases de
+    $\alpha$-equivalencia de términos}.
+\end{enumerate}
+
+\subsubsection{$alpha$-equivalencia}
+
+Si en la siguiente expresión queremos sustituir la variable $x$ por el término
+$z$,
+
+\[
+    \sustOne{(\abs{z}{\sigma}{x})}{x}{z} = \abs{z}{\sigma}{z}
+\]
+
+y lo hacemos de forma \textit{naive}, convertimos una función constante en la
+identidad. El problema es que $\lambda z : \sigma$ capturó la ocurrencia libre
+de $z$. Pero los nombres de las variables ligadas no son relevantes, la ecuación
+de arriba debería ser lo mismo que
+
+\[
+    \sustOne{(\abs{w}{\sigma}{x})}{x}{z} = \abs{w}{\sigma}{z}
+\]
+
+para definir la sustitución sobre aplicaciones
+$\sustOne{(\abs{y}{\sigma}{M})}{x}{N}$ vamos a asumir que la variable ligada $y$
+se renombró de forma tal que no ocurre libre en N.
+
+\begin{definition}[$\alpha$-equivalencia]
+    Dos términos $M$ y $N$ que difieren solamente en el nombre de sus variables
+    ligadas se dicen $\alpha$-equivalentes. Es una relación de equivalencia.
+    
+    \begin{example*} Ejemplos:
+        \begin{itemize}
+            \item $\abs{x}{Bool}{x} \aeq \abs{y}{Bool}{y}$
+            \item $\abs{x}{Bool}{y} \aeq \abs{z}{Bool}{y}$
+            \item $\abs{x}{Bool}{y} \naeq \abs{x}{Bool}{z}$
+            \item $\abs{x}{Bool}{\abs{x}{Bool}{x}} \naeq \abs{y}{Bool}{\abs{x}{Bool}{y}}$
+        \end{itemize}        
+    \end{example*}
+\end{definition}
+
+\textit{La idea detrás es agrupar expresiones que sean semánticamente equivalentes.}
+
+\subsubsection{Estado de error}
+
+Un \textbf{estado de error} es un término que no es un valor pero en el que la
+evaluación está trabada. (Un término en forma normal que no es un valor).
+Representa un estado en el cual el sistema de runtime en una implementación real
+generaría una excepción. Ejemplos:
+
+\begin{itemize}
+    \item $\ifte{x}{M}{N}$ (no es cerrado)
+    \item $\app{true}{M}$ (no es tipable)
+\end{itemize}
+
+\subsubsection{Objetivo de un sistema de tipos}
+
+El objetivo de un sistema de tipos es garantizar la \textbf{ausencia} de estados
+de error.
+
+\begin{definition}
+    Decimos que un término \textbf{termina} o que es \textbf{fuertemente
+normalizante} si no hay cadenas de reduccioens infinitas a partir de él.
+\end{definition}
+
+\begin{theorem}
+    Todo término bien tipado termina. Si un término cerrado está bien tipado,
+    entonces evalúa a un valor.
+\end{theorem}
+
+Esto es lo que nos gustaría que cumpla nuestro lenguaje.
+
+\subsubsection{Corrección}
+
+Decimos que \textbf{Corrección = Progreso + Preservación}.
+
+\begin{definition}[Progreso]
+    Si $M$ es cerrado y bien tipado, entonces
+    \begin{enumerate}
+        \item $M$ es un valor, o bien
+        \item existe $M'$ tal que $\reduce{M}{M'}$
+    \end{enumerate}
+
+    \textit{La evaluación no puede trabarse para términos cerrados, bien tipados que no son valores.}
+\end{definition}
+
+\begin{definition}[Preservación]
+    Si $\Gtipa{M}{\sigma}$ y $\reduce{M}{N}$, entonces $\Gtipa{N}{\sigma}$.
+
+    \textit{La evaluación preserva tipos.}
+\end{definition}
 \end{document}
+
