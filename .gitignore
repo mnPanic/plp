@@ -8,3 +8,4 @@
 *.out
 *.pyg
 *_minted*/
+*.toc

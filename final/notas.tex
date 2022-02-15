@@ -73,6 +73,8 @@
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
 
+% texto
+\newcommand{\todo}[1]{{\textcolor{red}{\textbf{#1}}}}
 
 % mate general
 \newcommand{\eqdef}{\overset{\text{def}}{=}}
@@ -80,9 +82,11 @@
 \newcommand{\naeq}{\neq_\alpha}
 
 % calculo lambda
+\newcommand{\extendTypesWith}[1]{\sigma ::= \dots \mid #1}
 \newcommand{\lambdab}{\lambda^b}
+
 \newcommand{\tfunc}[2]{#1 \to #2}
-\newcommand{\ifte}[3]{\ if\ #1 \ then\ #2 \ else\ #3}
+\newcommand{\ifte}[3]{\ \text{if } #1 \text{ then } #2 \text{ else } #3}
 \newcommand{\abs}[3]{\lambda #1 : #2 . #3}
 \newcommand{\app}[2]{#1 \ #2} % aplicación
 \newcommand{\sust}[2]{#1 \{ #2 \}}
@@ -93,7 +97,33 @@
 \newcommand{\Gtipa}[2]{\tipa{\Gamma}{#1}{#2}}
 \newcommand{\GStipa}[2]{\tipa{\Gamma|\Sigma}{#1}{#2}}
 
+\newcommand{\fv}[1]{FV(#1)}
+
+% Lambda bn
+\newcommand{\lambdabn}{\lambda^{bn}}
+\newcommand{\suc}[1]{succ(#1)}
+\newcommand{\pred}[1]{pred(#1)}
+\newcommand{\iszero}[1]{iszero(#1)}
+\newcommand{\num}[1]{\underbar{#1}} % abreviación de suc^#1(0)
+
+% Lambda reg
+\newcommand{\lambdareg}{\lambda^{\dots r}}
+\newcommand{\reg}[1]{\{\ #1\ \}}
+\newcommand{\proj}[2]{#1 . #2}
+
+\newcommand{\iesimo}[1]{#1_i^{\ \ i \in 1..n}}
+
+% Lambda bnu
+\newcommand{\lambdabnu}{\lambda^{bnu}}
+\newcommand{\seq}[2]{#1;#2}
+
+% Lambda let
+\newcommand{\lambdalet}{\lambda^{\dots let}}
+\newcommand{\letin}[4]{\text{let } #1 : #2 = #3 \text{ in } #4}
+
+% Reducciones
 \newcommand{\reduce}[2]{#1 \to #2}
+\newcommand{\reduceToPrime}[1]{\reduce{#1}{#1'}}
 \newcommand{\doesntReduce}[2]{#1 \not\to #2}
 \newcommand{\reducesTo}[1]{\to_\text{(#1)}}
 
@@ -118,6 +148,8 @@
 \begin{document}
 
 \maketitle
+
+\tableofcontents
 
 \chapter{Paradigma funcional}
 
@@ -691,11 +723,11 @@ La definición formal es a partir de cada término del lambda cálculo por patte
 matching. FV = Free Variable
 
 \begin{align*}
-    FV(x) &\eqdef \{ x \} \\
-    FV(true) = FV(false) &\eqdef \emptyset \\
-    FV(\ifte{M}{P}{Q}) &\eqdef FV(M) \cup FV(P) \cup FV(Q) \\
-    FV(\app{M}{N}) &\eqdef FV(M) \cup FV(N) \\
-    FV(\abs{x}{\sigma}{M}) &\eqdef FV(M) \setminus \{ x \}
+    \fv{x} &\eqdef \{ x \} \\
+    \fv{true} = \fv{false} &\eqdef \emptyset \\
+    \fv{\ifte{M}{P}{Q}} &\eqdef \fv{M} \cup \fv{P} \cup \fv{Q} \\
+    \fv{\app{M}{N}} &\eqdef \fv{M} \cup \fv{N} \\
+    \fv{\abs{x}{\sigma}{M}} &\eqdef \fv{M} \setminus \{ x \}
 \end{align*}
 \end{definition}
 
@@ -1112,11 +1144,11 @@ Se define por sintaxis,
         \app{\sustOne{M_1}{x}{N}}{\sustOne{M_2}{x}{N}}\\
     \sustOne{(\abs{y}{\sigma}{M})}{x}{N}
         &\eqdef
-        \abs{y}{\sigma}{\sustOne{M}{x}{N}} \ x \neq y, y \notin FV(N)
+        \abs{y}{\sigma}{\sustOne{M}{x}{N}} \ x \neq y, y \notin \fv{N}
 \end{align*}
 
 \begin{enumerate}
-    \item NB: La condición $x\neq y, y \notin FV(N)$ \textbf{siempre} puede
+    \item NB: La condición $x\neq y, y \notin \fv{N}$ \textbf{siempre} puede
     cumplirse renombrando apropiadamente.
     \item Técnicamente, la sustitución está definida sobre \textbf{clases de
     $\alpha$-equivalencia de términos}.
@@ -1208,5 +1240,254 @@ Decimos que \textbf{Corrección = Progreso + Preservación}.
 
     \textit{La evaluación preserva tipos.}
 \end{definition}
+
+\section{Extensiones de Cálculo Lambda}
+
+\subsection{$\lambdabn$ - Naturales}
+
+Tipos y términos
+
+\[
+\sigma ::= Bool \mid \textcolor{blue}{Nat} \mid \tfunc{\sigma}{\rho}
+\]
+
+\[
+M ::= \dots \mid 0 \mid \suc{M} \mid \pred{M} \mid \iszero{M}
+\]
+
+Informalmente, la semántica de los términos es:
+
+\begin{itemize}
+    \item $\suc{M}$: Evaluar $M$ hasta arrojar un número e incrementarlo.
+    \item $\pred{M}$: Evaluar $M$ hasta arrojar un número y decrementarlo.
+    \item $\iszero{M}$: Evaluar $M$ hasta arrojar un número, luego retornar
+    $true\mid false$ según sea cero o no.
+\end{itemize}
+
+\textit{agregamos términos para denotar ideas nuevas.}
+
+Axiomas y reglas de tipado:
+
+\begin{gather*}
+    \deriv{T-Zero}
+    {}
+    {\Gtipa{0}{Nat}}\\
+    \deriv{T-Succ}
+        {\Gtipa{M}{Nat}}
+        {\Gtipa{\suc{M}}{Nat}}
+    \qquad
+    \deriv{T-Pred}
+        {\Gtipa{M}{Nat}}
+        {\Gtipa{\pred{M}}{Nat}}\\
+    \deriv{T-IsZero}
+        {\Gtipa{M}{Nat}}
+        {\Gtipa{\iszero{M}}{Bool}}
+\end{gather*}
+
+Valores
+
+\[
+    V ::= \dots \mid \num{n} \quad \text{donde $\num{n}$ abrevia $succ^n(0)$}
+\]
+
+Juicio de evaluación en un paso
+
+\[
+    \deriv{E-Succ}
+        {\reduceToPrime{M_1}}
+        {\reduce{\suc{M_1}}{\suc{M_1'}}}
+\]
+
+\[
+    \deriv{E-PredZero}
+        {}
+        {\reduce{\pred{0}}{0}}
+    \qquad
+    \deriv{E-PredSucc}
+        {}
+        {\reduce{\pred{\num{n+1}}}{\num{n}}}
+\]
+
+\[
+    \deriv{E-Pred}
+        {\reduceToPrime{M_1}}
+        {\reduce{\pred{M_1}}{\pred{M_1'}}}
+\]
+
+\[
+    \deriv{E-IsZeroZero}
+        {}
+        {\reduce{\iszero{0}}{true}}
+    \qquad
+    \deriv{E-IsZeroSucc}
+        {}
+        {\reduce{\iszero{\num{n+1}}}{false}}
+\]
+\[
+    \deriv{E-IsZero}
+        {\reduceToPrime{M_1}}
+        {\reduce{\iszero{M_1}}{\iszero{M_1'}}}
+\]
+
+Además de los juicios de evaluación de un paso de $\lambdab$ \todo{Agregar
+referencia}
+
+\subsection{$\lambdareg$ - Registros}
+
+Sea $\mathcal{L}$ un conjunto de \textbf{etiquetas}, los tipos son:
+
+\[
+    \extendTypesWith{\reg{l_i : \sigma_i^{i \in 1..n}}}
+\]
+
+Ejemplos:
+
+\begin{itemize}
+    \item $\reg{nombre: String,\ edad: Nat}$
+    \item $\reg{persona: \reg{nombre: String,\ edad: Nat},\ cuil: Nat}$
+    \item Son posicionales, i.e 
+    $$\reg{nombre: String,\ edad: Nat} \neq \reg{edad: Nat,\ nombre: String}$$
+\end{itemize}
+
+Términos:
+
+\[
+    M ::= \dots \mid \reg{l_i = \iesimo{M}} \mid \proj{M}{I}
+\]
+
+Informalmente, la semántica es
+\begin{itemize}
+    \item El registro $\reg{l_i = \iesimo{M}}$ evalúa a $\reg{l_i =
+    \iesimo{V}}$ con $V_i$ el valor al que evalúa $M_i$.
+    \item $\proj{M}{I}$ evalúa $M$ hasta que sea un registro valor, luego
+    proyecta el campo correspondiente.
+\end{itemize}
+
+Ejemplos,
+
+\begin{itemize}
+    \item $\abs{x}{Nat}{\abs{y}{Bool}{\reg{edad = x,\ esMujer = y}}}$
+    \item $\abs{p}{\reg{edad: Nat,\ esMujer: Bool}}{p.edad}$
+    \item \begin{multline*}
+        (\abs{p}{\reg{edad: Nat,\ esMujer: Bool}}{p.edad})\\
+        \reg{edad = 20,\ esMujer = false}
+    \end{multline*}
+\end{itemize}
+
+Tipado:
+
+\[
+    \deriv{T-Rcd}
+        {\Gtipa{M_i}{\sigma_i} \text{ para cada } i \in 1..n}
+        {
+            \Gtipa
+                {\reg{l_i = \iesimo{M}}}
+                {\reg{l_i : \iesimo{\sigma}}}
+        }
+\]
+\[
+    \deriv{T-Proj}
+        {\Gtipa{M}{\reg{l_i : \iesimo{\sigma}}} \quad j \in 1..n}
+        {\Gtipa{\proj{M}{l_j}}{\sigma_j}}
+\]
+
+Valores:
+
+\[
+    V ::= \dots \mid \reg{l_i = \iesimo{V} }
+\]
+
+Semántica operacional:
+
+\begin{gather*}
+\deriv{E-Rcd}
+    {\reduceToPrime{M_j}}
+    {
+        \begin{gathered}
+            \reg{
+                l_i = V_i ^{\ \ i\in 1.. j- 1}, \
+                l_j = M_j, \
+                l_i = M_i ^{\ \ i\in j+1.. n},
+            }
+            \\ \to\\
+            \reg{
+                l_i = V_i ^{\ \ i\in 1.. j- 1}, \
+                l_j = M_j', \
+                l_i = M_i ^{\ \ i\in j+1.. n},
+            }    
+        \end{gathered}
+    }\\   
+\text{(se reducen de izquierda a derecha)}\\
+\deriv{E-ProjRcd}
+    {j \in 1..n}
+    {\reduce{\proj{\reg{l_i = \iesimo{V}}}{l_j}}{V_j}}\\
+\deriv{E-Proj}
+    {\reduceToPrime{M}}
+    {\reduce
+        {\proj{M}{I}}
+        {\proj{M'}{I}}
+    }
+\end{gather*}
+
+\subsection{$\lambdabnu$ - Unit}
+
+\begin{gather*}
+    \sigma ::= Bool 
+        \mid Nat 
+        \mid \textcolor{blue}{Unit} 
+        \mid \tfunc{\sigma}{\rho}\\
+    M ::= \dots \mid unit
+\end{gather*}
+
+Informalmente, $Unit$ es un tipo unitario y el único valor posible de una
+espresión de ese tipo es $unit$. Es parecido a la idea de \texttt{void} en
+lenguajes como C o Java.
+
+Tipado:
+
+\[
+    \deriv{T-Unit}
+        {}
+        {\Gtipa{unit}{Unit}}
+\]
+
+Valores:
+
+\[
+    V ::= \dots \mid unit
+\]
+
+No hay reglas de evaluación nuevas, ya que $unit$ es un valor.
+
+Su utilidad principal es en lenguajes con efectos laterales. Porque en ellos es
+útil poder evaluar varias expresiones en \textbf{secuencia},
+
+\[
+    \seq{M_1}{M_2} \eqdef \app{(\abs{x}{Unit}{M_2})}{M_1} \quad x\notin \fv{M_2}
+\]
+
+\begin{itemize}
+    \item La evaluación de $M_1; M_2$ consiste en primero evaluar $M_1$ hasta
+    que sea un valor $V_1$, reemplazar las apariciones de $x$ en $M_2$ por
+    $V_1$, y luego evaluar $M_2$.
+    \item Como no hay apariciones libres de $x$ en $M_2$, se evalúa $M_1$ y
+    luego $M_2$. Este comportamiento se logra con las reglas de evaluación
+    definidas previamente. \todo{Agregar referencia}
+\end{itemize}
+
+\subsection{$\lambdalet$ - Variables}
+
+\[
+    M ::= \dots \mid \letin{x}{\sigma}{M}{N}
+\]
+
+Informalmente,
+
+\begin{itemize}
+    \item $\letin{x}{\sigma}{M}{N}$ evaluar M a un valor $V$, ligar $x$ a $V$ y
+    evaluar $N$.
+    \item Mejora la legibilidad, y la extensión \textbf{no} implica agregar
+    nuevos tipos.
+\end{itemize}
 \end{document}
 
