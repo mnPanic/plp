@@ -120,6 +120,28 @@
 % Lambda let
 \newcommand{\lambdalet}{\lambda^{\dots let}}
 \newcommand{\letin}[4]{\text{let } #1 : #2 = #3 \text{ in } #4}
+\newcommand{\alloc}[1]{\text{ref } #1}
+\newcommand{\dealloc}[1]{!#1}
+\newcommand{\assign}[2]{#1 := #2}
+
+\newcommand{\unit}{unit}
+\newcommand{\tunit}{Unit}
+
+\newcommand{\tref}[1]{\text{Ref } #1}
+
+\newcommand{\dletin}[3]{\text{let } #1 = #2 \text{ in } #3} % sin tipo
+
+\newcommand{\dom}[1]{Dom(#1)}
+
+\newcommand{\store}[3]{#1 [#2 \mapsto #3]}
+\newcommand{\estore}[3]{#1 \oplus (#2 \mapsto #3)}
+\newcommand{\mustore}[2]{\store{\mu}{#1}{#2}}
+\newcommand{\emustore}[2]{\estore{\mu}{#1}{#2}}
+
+\newcommand{\memat}[3]{#1(#2) = #3}
+
+\newcommand{\sreduce}[4]{\reduce{#1\mid#2}{#3\mid#4}}
+\newcommand{\sreduceToPrime}[2]{\sreduce{#1}{#2}{#1'}{#2'}}
 
 % Reducciones
 \newcommand{\reduce}[2]{#1 \to #2}
@@ -132,6 +154,11 @@
 
 \newcommand{\deriv}[3]{\trfrac[(#1)]{#2}{#3}}
 \newcommand{\derivok}[1]{\trfrac[]{\checkmark}{#1}}
+
+% Para indicar que algo se conv en valor
+\newcommand{\changed}[1]{\textcolor{red}{#1}}
+
+\newcommand{\evalsto}{\leadsto}
 
 % resolución
 \newcommand{\resol}[2]{\frac{#1}{#2}}
@@ -1243,6 +1270,15 @@ Decimos que \textbf{Corrección = Progreso + Preservación}.
 
 \section{Extensiones de Cálculo Lambda}
 
+Cada vez que extendemos un lenguaje,
+
+\begin{itemize}
+    \item Agregamos los \textbf{tipos} si hace falta,
+    \item Extendemos los \textbf{términos},
+    \item Damos la \textbf{reglas de tipado}, y finalmente
+    \item Damos la \textbf{semántica}
+\end{itemize}
+
 \subsection{$\lambdabn$ - Naturales}
 
 Tipos y términos
@@ -1475,7 +1511,9 @@ Su utilidad principal es en lenguajes con efectos laterales. Porque en ellos es
     definidas previamente. \todo{Agregar referencia}
 \end{itemize}
 
-\subsection{$\lambdalet$ - Variables}
+\subsection{Referencias}
+
+\subsubsection{$\lambdalet$ - Ligado}
 
 \[
     M ::= \dots \mid \letin{x}{\sigma}{M}{N}
@@ -1487,7 +1525,336 @@ Informalmente,
     \item $\letin{x}{\sigma}{M}{N}$ evaluar M a un valor $V$, ligar $x$ a $V$ y
     evaluar $N$.
     \item Mejora la legibilidad, y la extensión \textbf{no} implica agregar
-    nuevos tipos.
+    nuevos tipos, es solo sintaxis.
 \end{itemize}
+
+Ejemplos,
+
+\begin{itemize}
+    \item $\letin{x}{Nat}{\num{2}}{\suc{x}} \evalsto \num{3}$
+    \item $\pred{(\letin{x}{Nat}{\num{2}}{x})}$
+    \item \(
+        \letin
+            {f}
+            {\tfunc{Nat}{Nat}}
+            {\abs{x}{Nat}{\suc{n}}}
+            {f(\app{f}{0})}
+    \)
+
+    \textit{Como se puede ver, sirve para nombrar cosas que se usan más de una vez o dar declaratividad.}
+    \item \(
+        \letin
+            {x}
+            {Nat}
+            {\num{2}}
+            {\letin{x}{Nat}{\num{3}}{x}}
+    \)
+\end{itemize}
+
+\todo{Duda: Cual es la diferencia entre $\letin{x}{Nat}{\num{2}}{M}$ y
+$\app{(\abs{x}{Nat}{M})}{\num{2}}$?} Sirve cuando lo querés usar más de una vez
+
+Tipado,
+
+\[
+\deriv
+    {T-Let}
+    {\Gtipa{M}{\sigma_1} \quad \tipa{\Gamma, x: \sigma_1}{N}{\sigma_2}}
+    {\Gtipa{\letin{x}{\sigma_1}{M}{N}}{\sigma_2}}
+\]
+
+Semántica operacional,
+
+\begin{gather*}
+    \deriv{E-Let}
+        {\reduceToPrime{M_1}}
+        {
+            \reduce
+                {\letin{x}{\sigma}{M_1}{M_2}}
+                {\letin{x}{\sigma}{M_1'}{M_2}}
+        }\\
+    \deriv{E-LetV}
+        {}
+        {
+            \reduce
+                {\letin{x}{\sigma}{\changed{V_1}}{M_2}}
+                {\sustOne{M_2}{x}{\changed{V_1}}}
+        }
+\end{gather*}
+
+\textit{el objetivo es llevar a $M_1$ a un valor, y luego reemplazar las apariciones libres de $x$ en $M_2$ por $V_1$. Es parecido a la aplicación, y es como el \texttt{where} de haskell pero invertido}
+
+\subsubsection{Motivación}
+
+En una expresión como
+
+$$\letin{x}{Nat}{\num{2}}{M},$$
+
+$x$ es una variable declarada con valor 2. Pero el valor de $x$ permanece
+\textbf{inalterado} a lo largo de la evaluación de $M$. Es \textbf{inmutable},
+no existe una operación de asignación.
+
+En programación imperativa pasa todo lo contrario, todas las variables son
+mutables. Por eso vamos a extender al cálculo lambda tipado con variables
+mutables.
+
+\subsubsection{Operaciones básicas}
+
+\begin{itemize}
+    \item \textbf{Alocación} (Reserva de memoria), $\alloc{M}$ genera una
+    referencia fresca cuyo contenido es el valor de $M$.
+    \item \textbf{Derreferenciación} (Lectura), $\dealloc{x}$ sigue la
+    referencia $x$ y retorna su contenido.
+    \item \textbf{Asignación}. $\assign{x}{M}$ almacena en la referencia $x$ el
+    valor de $M$.
+\end{itemize}
+
+\subsubsection{Ejemplos}
+
+sin tipos en las let-expresiones para facilitar la lectura
+
+\begin{itemize}
+    \item $\dletin{x}{\alloc{\num{2}}}{\dealloc{x}}$ evalúa a  $\num{2}$
+    \item \(
+        \dletin
+            {x}
+            {\alloc{\num{2}}}
+            {\app
+                {(\abs{_}{unit}{\dealloc{x}})}
+                {(\assign{x}{\suc{\dealloc{x}}})}
+            }
+    \) evalúa a $\num{3}$
+
+    \todo{Por qué no así?} \(
+        \dletin
+            {x}
+            {\alloc{\num{2}}}
+            {\seq
+                {\assign{x}{\suc{\dealloc{x}}}}
+                {\dealloc{x}}
+            }
+    \)
+    
+    \item $\dletin{x}{\num{2}}{x}$ evalúa a $\num{2}$
+    \item $\dletin{x}{\alloc{\num{2}}}{x}$ evalúa a \todo{ver}
+    \item \textbf{aliasing},  \(
+        \dletin
+            {x}
+            {\alloc{\num{2}}}
+            {
+                \dletin{y}{x}
+                {
+                    \app
+                        {(\abs{_}{unit}{\dealloc{x}})}
+                        {(\assign{x}{\suc{\dealloc{y}}})}
+                }
+            }
+    \)
+
+    $x$ e $y$ son \textit{alias} para la misma celda de memoria. $\dealloc{x} == 
+    \dealloc{y}$.
+\end{itemize}
+
+El término
+\[
+    \dletin
+        {x}
+        {\alloc{\num{2}}}
+        {\assign{x}{\suc{\dealloc{x}}}}
+\]
+
+\subsubsection{Comandos}
+
+a qué evalúa? La asignación interesa por su \textbf{efecto}, y no su valor. No
+tiene interés preguntarse por el valor pero si tiene sentido por el efecto.
+
+\begin{definition}[Comando]
+Vamos a definir un \textbf{Comando} como una expresión qeu se evalúa para
+causar un efecto, y a $unit$ como su valor.
+\end{definition}
+
+Un lenguaje funcional \textbf{puro} es uno en el que las expresiones son
+\textbf{puras} en el sentido de carecer de efectos. Este lenguaje ya no es
+funcional puro.
+
+\subsubsection{Tipos y términos}
+
+Las \textbf{expresiones de tipos} ahora son
+
+\[
+    \sigma ::= Bool 
+        \mid Nat 
+        \mid \tfunc{\sigma}{\tau} 
+        \mid \tunit
+        \mid \tref{\sigma}
+\]
+
+Informalmente, $\tref{\sigma}$ es el tipo de las referencias de valores de tipo
+sigma. Por ej. $\tref{(\tfunc{Bool}{Nat})}$ es el tipo de las referencias a
+funciones de $Bool$ en $Nat$.
+
+Términos,
+
+\begin{align*}
+    M ::&= x \\
+        &\mid \abs{x}{\sigma}{M} \\
+        &\mid \app{M}{N} \\
+        &\mid \unit \\
+        &\mid \alloc{M} \\
+        &\mid\ \dealloc{M} \\
+        &\mid \assign{M}{N} \\
+        &\mid \dots
+\end{align*}
+
+Reglas de tipado,
+
+\begin{gather*}
+    \deriv{T-Ref}
+        {\Gtipa{M_1}{\sigma}}
+        {\Gtipa{\alloc{M_1}}{\tref{\sigma}}}\\ \\
+    \deriv{T-DeRef}
+        {\Gtipa{M_1}{\tref{\sigma}}}
+        {\Gtipa{\dealloc{M_1}}{\sigma}}\\ \\
+    \deriv{T-Assign}
+        {\Gtipa{M_1}{\tref{\sigma}} \quad \Gtipa{M_2}{\sigma}}
+        {\Gtipa{\assign{M_1}{M_2}}{\tunit}}
+\end{gather*}
+
+\subsubsection{Semántica operacional}
+
+Qué es una referencia? Es una abstracción de una porción de memoria que se
+encuentra en uso. Vamos a usar \textbf{direcciones} o \textbf{locations}, $l,
+l_i \in \mathcal{L}$ para representar referencias. Una \textbf{memoria} o
+\textbf{store} $\mu, \mu'$ es una función parcial de \textbf{direcciones} a
+\textbf{valores}. Notación
+
+\begin{itemize}
+    \item \textbf{Reescribir}: $\mustore{I}{V}$ es el store resultante de \textbf{pisar} $\mu(I)$ con $V$.
+    \item \textbf{Extender}: $\emustore{I}{V}$ es el \textbf{store extendido} resultante de ampliar
+    $\mu$ con una nueva asociación $I \mapsto V$ (asumiendo $I \notin Dom(\mu)$).
+\end{itemize}
+
+Y las reducciones ahora toman la forma
+
+\[
+    \sreduce{M}{\mu}{M'}{\mu'}.
+\]
+
+En un paso posiblemente hay un nuevo store, porque puede haber habido una
+operación de asignación.
+
+
+La intuición de la semántica es
+
+\[
+    \deriv{E-RefV}
+        {l \notin \dom{\mu}}
+        {\sreduce
+            {\alloc{V}}{\mu}
+            {l}{\emustore{I}{V}}
+        }
+\]
+
+el efecto de hacer un $\alloc{V}$ es alocar una posición de memoria (meterlo en
+el store), creando una nueva direccion y asignándole el valor $V$.
+
+Los valores posibles ahora incluyen las \textbf{direcciones},
+
+\[
+    V ::= \dots \mid \unit \mid \abs{x}{\sigma}{M} \mid l
+\]
+
+Dado que son un subcojunto de los términos, debemos ampliar los términos con
+direcciones. Estas son producto de la formalización y \textbf{no} se pretende
+que sean usadas por los programadores.
+
+\begin{align*}
+    M ::&= x \\
+        &\mid \abs{x}{\sigma}{M} \\
+        &\mid \app{M}{N} \\
+        &\mid \unit \\
+        &\mid \alloc{M} \\
+        &\mid\ \dealloc{M} \\
+        &\mid \assign{M}{N} \\
+        &\mid \changed{l}
+\end{align*}
+
+\todo{Juntar esto para que quede todos los términos juntos y redactado de una forma que la tire de una en vez de ir explorando.}
+
+\subsubsection{Juicios de tipado}
+
+Los valores que tienen las \textit{locations} dependen de los valores que se
+almacenan en la dirección, una situación parecida a las variables libres.
+Entonces necesitamos un contexto de tipado para las direcciones. $\Sigma$ va a
+ser una función parcial de direcciones en tipos.
+
+\[
+    \GStipa{M}{\sigma}
+\]
+
+Y las reglas de tipado,
+
+\begin{gather*}
+    \deriv{T-Ref}
+        {\GStipa{M_1}{\sigma}}
+        {\GStipa{\alloc{M_1}}{\tref{\sigma}}}\\ \\
+    \deriv{T-DeRef}
+        {\GStipa{M_1}{\tref{\sigma}}}
+        {\GStipa{\dealloc{M_1}}{\sigma}}\\ \\
+    \deriv{T-Assign}
+        {\GStipa{M_1}{\tref{\sigma}} \quad \GStipa{M_2}{\sigma}}
+        {\GStipa{\assign{M_1}{M_2}}{\tunit}}\\ \\
+    \deriv{T-Loc}
+        {\Sigma(l) = \sigma}
+        {\GStipa{l}{\tref{\sigma}}}
+\end{gather*}
+
+\subsubsection{Semántica operacional retomada}
+
+\[
+    V ::= true 
+        \mid false
+        \mid 0
+        \mid \num{n}
+        \mid \unit
+        \mid \abs{x}{\sigma}{M}
+        \mid l
+\]
+
+Juicios de evaluación en un paso
+
+\begin{gather*}
+    \deriv{E-Deref}
+        {\sreduceToPrime{M_1}{\mu}}
+        {\sreduce
+            {\dealloc{M_1}}{\mu}
+            {\dealloc{M_1'}}{\mu'}
+        }\\\\
+    \deriv{E-DerefLoc}
+        {\memat{\mu}{l}{\changed{V}}}
+        {\sreduce
+            {\dealloc{l}}{\mu}
+            {\changed{V}}{\mu}
+        }\\\\
+    \deriv{E-Assign1}
+        {\sreduceToPrime{M_1}{\mu}}
+        {\sreduce
+            {\assign{M_1}{M_2}}{\mu}
+            {\assign{M_1'}{M_2}}{\mu'}
+        }\\\\
+    \deriv{E-Assign2}
+        {\sreduceToPrime{M_2}{\mu}}
+        {\sreduce
+            {\assign{\changed{V}}{M_2}}{\mu}
+            {\assign{\changed{V}}{M_2'}}{\mu'}
+        }
+    % \deriv{E-Assign}
+    %     {}
+    %     {\sreduce
+    %         {\assign{\changed{V}}{M_2}}{\mu}
+    %         {\assign{\changed{V}}{M_2'}}{\mu'}
+    %     }
+\end{gather*}
+
 \end{document}
 
