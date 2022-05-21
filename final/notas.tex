@@ -1,5 +1,10 @@
 \documentclass{report}
 
+% Font
+\usepackage[T1]{fontenc}
+% https://es.overleaf.com/learn/latex/Font_sizes%2C_families%2C_and_styles
+\renewcommand{\familydefault}{\sfdefault}
+
 % Matemática
 \usepackage{amsmath}    % símbolos matemáticos
 \usepackage{amssymb}    % símbolos matemáticos
@@ -24,6 +29,9 @@
 
 % Referencias
 \usepackage[colorlinks=true]{hyperref}
+
+% https://tex.stackexchange.com/questions/121865/nameref-how-to-display-section-name-and-its-number
+\newcommand*{\fullref}[1]{\hyperref[{#1}]{\autoref*{#1} \nameref*{#1}}}
 
 % Programas
 % https://tex.stackexchange.com/questions/116595/highlighting-haskell-listings-in-large-tex-document
@@ -96,6 +104,8 @@
 \newcommand{\tienetipo}[3]{#1 : #2 \in #3}
 \newcommand{\Gtipa}[2]{\tipa{\Gamma}{#1}{#2}}
 \newcommand{\GStipa}[2]{\tipa{\Gamma|\Sigma}{#1}{#2}}
+\newcommand{\compat}[2]{#1 \rhd #2} % compatibilidad
+\newcommand{\GSCompat}[1]{\compat{\Gamma|\Sigma}{#1}} % compatibilidad
 
 \newcommand{\fv}[1]{FV(#1)}
 
@@ -138,10 +148,18 @@
 \newcommand{\mustore}[2]{\store{\mu}{#1}{#2}}
 \newcommand{\emustore}[2]{\estore{\mu}{#1}{#2}}
 
-\newcommand{\memat}[3]{#1(#2) = #3}
+\newcommand{\mematSet}[3]{#1(#2) = #3}
+\newcommand{\memat}[2]{#1(#2)}
 
 \newcommand{\sreduce}[4]{\reduce{#1\mid#2}{#3\mid#4}}
 \newcommand{\sreduceToPrime}[2]{\sreduce{#1}{#2}{#1'}{#2'}}
+
+\newcommand{\sreducesTo}[5]{#1\mid#2 \reducesTo{#3} #4\mid#5}
+\newcommand{\expstore}[2]{#1 \mid #2}
+
+% Recursión
+
+\newcommand{\fix}[1]{\text{fix } #1}
 
 % Reducciones
 \newcommand{\reduce}[2]{#1 \to #2}
@@ -157,6 +175,7 @@
 
 % Para indicar que algo se conv en valor
 \newcommand{\changed}[1]{\textcolor{red}{#1}}
+\newcommand{\select}[1]{\textcolor{blue}{#1}}
 
 \newcommand{\evalsto}{\leadsto}
 
@@ -1181,7 +1200,7 @@ Se define por sintaxis,
     $\alpha$-equivalencia de términos}.
 \end{enumerate}
 
-\subsubsection{$alpha$-equivalencia}
+\subsubsection{$\alpha$-equivalencia}
 
 Si en la siguiente expresión queremos sustituir la variable $x$ por el término
 $z$,
@@ -1248,7 +1267,7 @@ normalizante} si no hay cadenas de reduccioens infinitas a partir de él.
 
 Esto es lo que nos gustaría que cumpla nuestro lenguaje.
 
-\subsubsection{Corrección}
+\subsubsection{Corrección}\label{sec:correccion}
 
 Decimos que \textbf{Corrección = Progreso + Preservación}.
 
@@ -1669,7 +1688,7 @@ a qué evalúa? La asignación interesa por su \textbf{efecto}, y no su valor. N
 tiene interés preguntarse por el valor pero si tiene sentido por el efecto.
 
 \begin{definition}[Comando]
-Vamos a definir un \textbf{Comando} como una expresión qeu se evalúa para
+Vamos a definir un \textbf{Comando} como una expresión que se evalúa para
 causar un efecto, y a $unit$ como su valor.
 \end{definition}
 
@@ -1729,8 +1748,8 @@ l_i \in \mathcal{L}$ para representar referencias. Una \textbf{memoria} o
 \textbf{valores}. Notación
 
 \begin{itemize}
-    \item \textbf{Reescribir}: $\mustore{I}{V}$ es el store resultante de \textbf{pisar} $\mu(I)$ con $V$.
-    \item \textbf{Extender}: $\emustore{I}{V}$ es el \textbf{store extendido} resultante de ampliar
+    \item \textbf{Reescribir}: $\mustore{l}{V}$ es el store resultante de \textbf{pisar} $\mu(I)$ con $V$.
+    \item \textbf{Extender}: $\emustore{l}{V}$ es el \textbf{store extendido} resultante de ampliar
     $\mu$ con una nueva asociación $I \mapsto V$ (asumiendo $I \notin Dom(\mu)$).
 \end{itemize}
 
@@ -1751,7 +1770,7 @@ La intuición de la semántica es
         {l \notin \dom{\mu}}
         {\sreduce
             {\alloc{V}}{\mu}
-            {l}{\emustore{I}{V}}
+            {l}{\emustore{l}{V}}
         }
 \]
 
@@ -1804,10 +1823,11 @@ Y las reglas de tipado,
     \deriv{T-Assign}
         {\GStipa{M_1}{\tref{\sigma}} \quad \GStipa{M_2}{\sigma}}
         {\GStipa{\assign{M_1}{M_2}}{\tunit}}\\ \\
-    \deriv{T-Loc}
+    \changed{\deriv{T-Loc}
         {\Sigma(l) = \sigma}
-        {\GStipa{l}{\tref{\sigma}}}
+        {\GStipa{l}{\tref{\sigma}}}}
 \end{gather*}
+
 
 \subsubsection{Semántica operacional retomada}
 
@@ -1821,7 +1841,11 @@ Y las reglas de tipado,
         \mid l
 \]
 
-Juicios de evaluación en un paso
+Juicios de evaluación en un paso. Ahora van a tener la pinta
+
+\[
+    \sreduceToPrime{M}{\mu}
+\]
 
 \begin{gather*}
     \deriv{E-Deref}
@@ -1829,32 +1853,214 @@ Juicios de evaluación en un paso
         {\sreduce
             {\dealloc{M_1}}{\mu}
             {\dealloc{M_1'}}{\mu'}
-        }\\\\
+        }\qquad
     \deriv{E-DerefLoc}
-        {\memat{\mu}{l}{\changed{V}}}
+        {\mematSet{\mu}{l}{\changed{V}}}
+        {\mematSet{\mu}{l}{\changed{V}}}
         {\sreduce
             {\dealloc{l}}{\mu}
             {\changed{V}}{\mu}
-        }\\\\
+        }\\
+    \text{antes de hacer una desreferencia, necesito que el término llegue a un valor}
+    \\
     \deriv{E-Assign1}
         {\sreduceToPrime{M_1}{\mu}}
         {\sreduce
             {\assign{M_1}{M_2}}{\mu}
             {\assign{M_1'}{M_2}}{\mu'}
-        }\\\\
+        }\qquad
     \deriv{E-Assign2}
         {\sreduceToPrime{M_2}{\mu}}
         {\sreduce
             {\assign{\changed{V}}{M_2}}{\mu}
             {\assign{\changed{V}}{M_2'}}{\mu'}
-        }
-    % \deriv{E-Assign}
-    %     {}
-    %     {\sreduce
-    %         {\assign{\changed{V}}{M_2}}{\mu}
-    %         {\assign{\changed{V}}{M_2'}}{\mu'}
-    %     }
+        }\\
+    \deriv{E-Assign}
+        {}
+        {\sreduce
+            {\assign{l}{\changed{V}}}{\mu}
+            {\unit}{\mustore{l}{\changed{V}}}
+        }\\\\
+    \deriv{E-Ref}
+        {\sreduceToPrime{M_1}{\mu}}
+        {\sreduce
+            {\alloc{M_1}}{\mu}
+            {\alloc{M_1'}}{\mu'}
+        }\qquad
+    \deriv{E-RefV}
+        {l \notin \dom{\mu}}
+        {\sreduce
+            {\alloc{\changed{V}}}{\mu}
+            {l}{\emustore{l}{\changed{V}}}
+        }\\
+    \text{M puede ser complejo, así que hasta que llegue a un valor puede haber cambiado el store.}\\\\
+    \deriv{E-App1}
+        {\sreduceToPrime{M_1}{\mu}}
+        {
+            \sreduce
+            {\app{M_1}{M_2}}{\mu}
+            {\app{M_1'}{M_2}}{\mu'}
+        }\qquad
+    \deriv{E-App2}
+        {\sreduceToPrime{M_2}{\mu}}
+        {
+            \sreduce
+            {\app{\changed{V_1}}{M_2}}{\mu}
+            {\app{\changed{V_1}}{M_2'}}{\mu'}
+        }\\
+    \deriv{E-AppAbs}{}
+        { 
+            \sreduce
+                {\app{\abs{x}{\sigma}{M}} \changed{V}}{\mu}
+                {\sustOne{M}{x}{\changed{V}}}{\mu}
+        }\\
+    \text{El resto de las reglas son similares, pero no modifican el store.}
 \end{gather*}
+
+\begin{nota}
+    \textbf{El store se puede modificar en el medio}, por ej si tengo
+    \begin{align*}
+        \expstore{\dealloc{ \select{\alloc{V}}} }{\mu}
+        &\reducesTo{E-Deref, E-RefV}\
+        \expstore{\select{\dealloc{l}}}{\changed{\emustore{l}{V}}} \\
+        &\reducesTo{E-DerefLoc}
+        \expstore{\changed{V}}{\emustore{l}{V}}
+    \end{align*}
+
+    esto es fundamental ya que rompe la idea de funcional, en la que evolucionando
+    un término no podía haber ningún \textit{side effect}
+\end{nota}
+
+\subsubsection{Corrección}
+
+En la \fullref{sec:correccion} se habla de corrección en sistemas de tipos.
+Tenemos que reformularla en el marco de \textit{referencias}.
+
+\begin{nota}
+    Para la preservación nos gustaría definirlo como 
+    \[
+        \GStipa{M}{\sigma}
+        \text{ y } \sreduceToPrime{M}{\mu}
+        \text{ entonces } \GStipa{M'}{\sigma}
+    \]
+    pero esto tiene el problema de que nada fuerza la \textit{coordinación}
+    entre $\Sigma$ y $\Gamma$. Por ejemplo, si tenemos
+
+    \begin{itemize}
+        \item $M = \dealloc{l}$
+        \item $\Gamma = \emptyset$
+        \item $\Sigma(l) = Nat$
+        \item $\mu(l) = true$
+    \end{itemize}
+
+    entonces $\GStipa{M}{Nat}$ y $\sreduce{M}{\mu}{true}{\mu}$ \textbf{pero}
+    $\GStipa{true}{Nat}$ no vale.
+
+    Necesitamos un mecanismo para \textbf{"tipar"} los stores. Que haya una
+    compatibilidad entre los stores y el contexto de tipado.
+\end{nota}
+
+\begin{definition}[Compatibilidad]
+    
+    Vamos a decir que un store es \textbf{compatible} con un juicio de tipado,
+
+    \[\GSCompat{\mu} \text{ sii}\]
+    \begin{enumerate}
+        \item $Dom(\Sigma) = Dom(\mu)$ y
+        \item $\GStipa{\memat{\mu}{l}}{\Sigma(l)}$ para todo $l \in Dom(\mu)$
+    \end{enumerate}
+
+\end{definition}
+
+\begin{nota}
+    Reformulamos la preservación como
+    \[
+        \GStipa{M}{\sigma}
+        \text{ y } \sreduce{M}{\mu}{N}{\mu'}{\mu}
+        \text{ y } \select{\GSCompat{\mu}}
+        \text{ entonces } \GStipa{N}{\sigma}
+    \]
+    esto es \changed{casi} correcto, porque no contempla la posibilidad de que
+    haya habido algún alloc en la reducción de M a N. Puede crecer en dominio
+\end{nota}
+
+\begin{definition}[Preservación para $\lambdalet$]
+    Si
+    \begin{itemize}
+        \item $\GStipa{M}{\sigma}$
+        \item $\sreduce{M}{\mu}{N}{\mu'}$ y
+        \item $\GSCompat{\mu}$
+    \end{itemize}
+    
+    implica que existe $\Sigma' \supseteq \Sigma$ tal que
+    \begin{itemize}
+        \item $\tipa{\Gamma|\Sigma'}{N}{\Sigma}$ y
+        \item $\compat{\Gamma|\Sigma'}{\mu'}$
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[Progreso para $\lambdalet$]
+    Si $M$ es cerrado y bien tipado ($\tipa{\emptyset|\Sigma}{M}{\sigma}$ para
+    algún $\Sigma, \sigma$) entonces:
+
+    \begin{enumerate}
+        \item M es un valor
+        \item o bien para cualquier store $\mu$ tal que
+        $\compat{\emptyset|\Sigma}{\mu}$, existe $M'$ y $\mu'$ tal que $\sreduceToPrime{M}{\mu}$
+    \end{enumerate}
+\end{definition}
+
+\subsubsection{Ejemplos}
+
+\todo{copiar}
+
+succ y refs
+
+let in
+
+ejemplo de que no todo termina
+
+\subsection{Recursión}
+
+En programación funcional es muy común tener una función definida
+\textit{recursivamente},
+
+$$f = f \dots f \dots f \dots$$
+
+\subsubsection{Términos y tipado}
+
+\[
+    M ::= \dots \mid \fix{M}
+\]
+
+\textit{fix viene de la idea de \textbf{punto fijo}, aplicar la $f$ varias
+veces.}
+
+No hacen falta nuevos tipos, pero si una regla de tipado
+
+\[
+    \deriv{T-Fix}
+        {\Gtipa{M}{\tfunc{\sigma_1}{\sigma_1}}}
+        {\Gtipa{\fix{M}}{\sigma_1}}
+\]
+
+\subsubsection{Semántica operacional small-step}
+
+No hay valores nuevos, pero si reglas de eval en un paso nuevas.
+
+\begin{gather*}
+    \deriv{E-Fix}
+        {\reduceToPrime{M_1}}
+        {\reduce{\fix{M_1}}{\fix{M_1'}}}\\
+    \deriv{E-FixBeta}{}
+    {
+        \reduce
+        {\fix{(\abs{x}{\sigma}{M})}}
+        {\sustOne{M}{x}{\fix{(\abs{x}{\sigma}{M})}}}
+    }
+\end{gather*}
+
+\todo{Fix se ve en el otro video de la clase}
 
 \end{document}
 
