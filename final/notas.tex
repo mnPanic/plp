@@ -39,6 +39,11 @@
 % https://tex.stackexchange.com/questions/367332/minted-error-undefined-control-sequence-pyg-with-texmaker
 \usepackage[cache=false]{minted}     % código
 
+% https://tex.stackexchange.com/questions/260566/how-to-reliably-switch-the-highlighting-color-with-soul
+\usepackage{soul}
+\DeclareRobustCommand{\hlcyan}[1]{{\sethlcolor{cyan}\hl{#1}}}
+
+
 \usetikzlibrary{arrows,positioning,automata,shadows,fit,shapes}
 
 % Teoremas, corolarios, etc.
@@ -100,6 +105,8 @@
 \newcommand{\sust}[2]{#1 \{ #2 \}}
 \newcommand{\sustOne}[3]{#1 \{ #2 \leftarrow #3 \}}
 
+\newcommand{\uabs}[2]{\lambda #1 . #2} % untyped
+
 \newcommand{\tipa}[3]{#1 \rhd #2 : #3} % \vartriangleright
 \newcommand{\tienetipo}[3]{#1 : #2 \in #3}
 \newcommand{\Gtipa}[2]{\tipa{\Gamma}{#1}{#2}}
@@ -130,6 +137,7 @@
 % Lambda let
 \newcommand{\lambdalet}{\lambda^{\dots let}}
 \newcommand{\letin}[4]{\text{let } #1 : #2 = #3 \text{ in } #4}
+\newcommand{\uletin}[3]{\text{let } #1 = #2 \text{ in } #3} % untyped
 \newcommand{\alloc}[1]{\text{ref } #1}
 \newcommand{\dealloc}[1]{!#1}
 \newcommand{\assign}[2]{#1 := #2}
@@ -138,8 +146,6 @@
 \newcommand{\tunit}{Unit}
 
 \newcommand{\tref}[1]{\text{Ref } #1}
-
-\newcommand{\dletin}[3]{\text{let } #1 = #2 \text{ in } #3} % sin tipo
 
 \newcommand{\dom}[1]{Dom(#1)}
 
@@ -160,12 +166,14 @@
 % Recursión
 
 \newcommand{\fix}[1]{\text{fix } #1}
+\newcommand{\letrec}[4]{\text{letrec } #1 : #2 = #3 \text{ in } #4}
 
 % Reducciones
 \newcommand{\reduce}[2]{#1 \to #2}
 \newcommand{\reduceToPrime}[1]{\reduce{#1}{#1'}}
 \newcommand{\doesntReduce}[2]{#1 \not\to #2}
 \newcommand{\reducesTo}[1]{\to_\text{(#1)}}
+\newcommand{\reduces}{\to}
 
 \newcommand{\reduceManyTo}{\twoheadrightarrow}
 \newcommand{\reduceMany}[2]{#1 \reduceManyTo #2}
@@ -1633,9 +1641,9 @@ mutables.
 sin tipos en las let-expresiones para facilitar la lectura
 
 \begin{itemize}
-    \item $\dletin{x}{\alloc{\num{2}}}{\dealloc{x}}$ evalúa a  $\num{2}$
+    \item $\uletin{x}{\alloc{\num{2}}}{\dealloc{x}}$ evalúa a  $\num{2}$
     \item \(
-        \dletin
+        \uletin
             {x}
             {\alloc{\num{2}}}
             {\app
@@ -1645,7 +1653,7 @@ sin tipos en las let-expresiones para facilitar la lectura
     \) evalúa a $\num{3}$
 
     \todo{Por qué no así?} \(
-        \dletin
+        \uletin
             {x}
             {\alloc{\num{2}}}
             {\seq
@@ -1654,14 +1662,14 @@ sin tipos en las let-expresiones para facilitar la lectura
             }
     \)
     
-    \item $\dletin{x}{\num{2}}{x}$ evalúa a $\num{2}$
-    \item $\dletin{x}{\alloc{\num{2}}}{x}$ evalúa a \todo{ver}
+    \item $\uletin{x}{\num{2}}{x}$ evalúa a $\num{2}$
+    \item $\uletin{x}{\alloc{\num{2}}}{x}$ evalúa a \todo{ver}
     \item \textbf{aliasing},  \(
-        \dletin
+        \uletin
             {x}
             {\alloc{\num{2}}}
             {
-                \dletin{y}{x}
+                \uletin{y}{x}
                 {
                     \app
                         {(\abs{_}{unit}{\dealloc{x}})}
@@ -1676,7 +1684,7 @@ sin tipos en las let-expresiones para facilitar la lectura
 
 El término
 \[
-    \dletin
+    \uletin
         {x}
         {\alloc{\num{2}}}
         {\assign{x}{\suc{\dealloc{x}}}}
@@ -2044,6 +2052,9 @@ No hacen falta nuevos tipos, pero si una regla de tipado
         {\Gtipa{\fix{M}}{\sigma_1}}
 \]
 
+$M$ no puede ser cualquier cosa, tiene que ser una función que vaya del mismo
+dominio a la misma imagen.
+
 \subsubsection{Semántica operacional small-step}
 
 No hay valores nuevos, pero si reglas de eval en un paso nuevas.
@@ -2055,12 +2066,128 @@ No hay valores nuevos, pero si reglas de eval en un paso nuevas.
     \deriv{E-FixBeta}{}
     {
         \reduce
-        {\fix{(\abs{x}{\sigma}{M})}}
-        {\sustOne{M}{x}{\fix{(\abs{x}{\sigma}{M})}}}
+        {\fix{(\abs{f}{\sigma}{M})}}
+        {\sustOne{M}{f}{\fix{(\abs{f}{\sigma}{M})}}}
     }
 \end{gather*}
 
-\todo{Fix se ve en el otro video de la clase}
+\begin{nota}
+    La aplicación normal era
+    \[
+        \reduce{\app{(\abs{x}{\sigma}{M})}{M_2}}{\sustOne{M}{x}{M_2}}
+    \]
+
+    pero acá el $x$ lo reemplazamos por el mismo fix.
+\end{nota}
+
+\subsubsection{Ejemplo: Factorial}
+
+Sea el término $M$
+
+\begin{align*}
+    M =\ &\abs{f}{\tfunc{Nat}{Nat}}
+        {\\ &\quad \abs{x}{Nat}
+            {\\ &\qquad\ifte{\iszero{x}}{\num{1}}{x * f(\pred{x})}}}
+\end{align*}
+
+$M$ tiene tipo $\tfunc{(\tfunc{Nat}{Nat})}{(\tfunc{Nat}{Nat})}$. En
+
+\[
+    \letin{fact}{\tfunc{Nat}{Nat}}{\fix{M}}{fact\ \num{2}}
+\]
+
+\begin{align*}
+    &\fix{M} = \fix{\uabs{f}{\uabs{x}{
+        \ifte{\iszero{x}}{\num{1}}{x * (\app{\select{f}}{pred(x)})}
+    }}}\\
+    &\reduces \uabs{x}{\ifte{iszero(x)}{1\\ &}
+        { x *
+            (\app
+                {
+                    \changed{[\fix{\uabs{f}{\uabs{x}{
+                        \ifte{\iszero{x}}{\num{1}}{x * (\app{f}{pred(x)})}
+                    }}}]}
+                }{pred(x)})
+        }
+    }\\
+    &\reduces \uabs{x}{
+        \ifte
+            {iszero(x)}
+            {1\\ &}
+            { x * 
+              \textcolor{cyan}
+              {
+                \uabs{x}{\ifte{iszero(x)}{1}
+                { x *
+                    (\app
+                        {
+                            \changed{[\fix{\uabs{f}{\uabs{x}{
+                                \ifte{\iszero{x}}{\num{1}}{x * (\app{f}{pred(x)})}
+                            }}}]}
+                        }{pred(x)})
+                }}
+              }
+            }
+    }
+\end{align*}
+
+\todo{seguir}
+
+\subsubsection{Ejemplo: Suma}
+
+Sea el término $M$
+
+\begin{align*}
+    M = &\abs{s}{\tfunc{Nat}{\tfunc{Nat}{Nat}}}
+        {\\ &\quad \abs{x}{Nat}
+            {\\ &\qquad \abs{y}{Nat}
+                {\\ &\quad\qquad \ifte{\iszero{x}}{y}{\suc{s\ \pred{x}\ y}}}}}
+\end{align*}
+
+En
+
+\[
+    \uletin{suma}{\fix{M}}{suma\ \num{2}\ num{3}}
+\]
+
+\subsubsection{Letrec}
+
+\textbf{letrec} es una sintaxis alternativa para definir funciones recursivas,
+
+\[
+    \letrec{f}{\tfunc{\sigma}{\sigma}}{\abs{x}{\sigma}{M}}{N}
+\]
+
+Por ejemplo
+
+\begin{align*}
+    &\letrec
+        {fact}
+        {\tfunc{Nat}{Nat}}
+        {\\ &\quad
+            \abs
+                {x}
+                {Nat}
+                {\ifte{\iszero{x}}{\num{1}}{x * fact(pred(x))}}\\&
+        }
+        {fact\ \num{3}}
+\end{align*}
+
+no es más que \textit{syntactic sugar}. Se puede reescribir a partir de
+fix:
+
+\[
+    \uletin
+        {f}
+        {
+            \fix{(
+                \abs{f}
+                    {\tfunc{\sigma}{\sigma}}
+                    {\abs{x}{\sigma}{M}}
+            )}
+        }
+        {N}
+\]
 
 \end{document}
 
