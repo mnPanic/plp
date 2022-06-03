@@ -5,6 +5,10 @@
 % https://es.overleaf.com/learn/latex/Font_sizes%2C_families%2C_and_styles
 \renewcommand{\familydefault}{\sfdefault}
 
+% Saltear indentación en los párrafos
+% https://tex.stackexchange.com/questions/14375/how-to-disable-automatic-indentation-on-new-paragraphs
+\usepackage{parskip}
+
 % Matemática
 \usepackage{amsmath}    % símbolos matemáticos
 \usepackage{amssymb}    % símbolos matemáticos
@@ -189,7 +193,12 @@
 % Inferencia
 \newcommand{\untypedTerms}{\Lambda}
 \newcommand{\typedTerms}{\Lambda_\tau}
+\newcommand{\typeVars}{\mathcal{V}}
+\newcommand{\types}{\mathcal{T}}
 \newcommand{\erase}[1]{\text{Erase}(#1)}
+
+\newcommand{\appTSust}[1]{S#1} % apply type sust
+\newcommand{\tsust}[2]{#1/#2} % type sust
 
 % Resolución
 \newcommand{\resol}[2]{\frac{#1}{#2}}
@@ -2243,6 +2252,123 @@ anotaciones de tipo) $M$ tal que
     \item $\Gtipa{M}{\sigma}$ para algun $\Gamma, \sigma$, y
     \item $\erase{M} = U$
 \end{enumerate}
+
+Ejemplos:
+
+\begin{itemize}
+    \item Para $U = \uabs{x}{\suc{x}}$ tomamos $M = \abs{x}{Nat}{\suc{x}}$ (no
+    hay otra posibilidad)
+    \item Para $U = \uabs{x}{\uabs{f}{\app{f}{x}}}$ obtenemos infinitos $M$s,
+    $M_{\sigma, \tau} =
+    \abs{x}{\sigma}{\abs{f}{\tfunc{\sigma}{\tau}}{\app{f}{x}}}$
+
+    Podemos encontrar muchos Ms que nos sirvan.
+
+    \item Para $U = \app{x}{x}$ no existe ningún término M que lo cumpla.
+\end{itemize}
+
+\begin{nota}
+    chequeo de tipos $\neq$ inferencia de tipos.
+
+    El chequeo de tipos consistía en dado un término estándar M determinar si
+    existían $\Gamma$ y $\sigma$ tales que $\Gtipa{M}{\sigma}$ es tipable.
+    El chequeo de tipos es guiado por sintaxis, la inferencia es más compleja.
+
+    \textit{por ejemplo en matemática, no es lo mismo demostrar un teorema que tener una demostración y verificar que sea correcta.}
+
+\end{nota}
+
+\subsection{Variables de tipos}
+
+
+\begin{nota} Motivación
+
+Para formalizar la noción de que diferentes tipos pueden ser válidos para una
+inferencia, por ejemplo dado
+
+\[
+    \uabs{x}{\uabs{f}{\app{f}{(\app{f}{x})}}}
+\]
+
+
+para cada $\sigma$, $M_\sigma$ es una solución posible
+
+\[
+    M_\sigma = \abs{x}{\sigma}{\abs{f}{\tfunc{\sigma}{\sigma}}{\app{f}{(\app{f}{x})}}}
+\]
+
+Pero $\sigma$ representa un tipo concreto. Para escribir una única expresion que
+englobe a todas, usamos \textbf{variables de tipo}: $s$ es una variable de tipo
+que representa una expresión de tipos arbitraria ($Nat, Bool,
+\tfunc{Nat}{Bool}$, etc.).
+
+\[
+    \abs{x}{s}{\abs{f}{\tfunc{s}{s}}{\app{f}{(\app{f}{x})}}}
+\]
+
+la expresión no es una solución en si misma, pero la \textbf{sustitución} de s
+por cualquier expresión de tipos nos da una solución válida.
+
+\end{nota}
+
+
+\begin{definition}[Variables de tipo]
+    Extendemos las \textbf{expresiones de tipo} del LC con \textbf{variables de
+    tipo} $s, t, u, \dots$
+    
+    \[
+        \sigma ::= \select{s} \mid Nat \mid Bool \mid \tfunc{\sigma}{\tau}
+    \]
+
+    Denotamos con $\typeVars$ al conjunto de variables de tipo y $\types$
+    al de tipos así definidos.
+
+    \begin{example*} Por ejemplo,
+        \begin{itemize}
+            \item $\tfunc{s}{t}$
+            \item $\tfunc{Nat}{\tfunc{Nat}{t}}$
+            \item $\tfunc{Bool}{t}$.
+        \end{itemize}
+    \end{example*}
+\end{definition}
+
+\subsection{Sustitución}
+
+Una \textbf{sustitución} es una función que mapea variables de tipo en
+expresiones de tipo. Usamos S, T, para sustituciones. Formalmente,
+$S : \tfunc{\typeVars}{\types}$. La idea de la sustitución es instanciar las
+variables de tipos en tipos concretos, por ejemplo $\appTSust{s} = Int$.
+
+Solo nos interesan las $S$ tales que $\{ t \in \typeVars \mid St \neq t \}$ es
+finito (este es un detalle técnico para que no sea infinita la sustitución)
+
+Se pueden aplicar a,
+
+\begin{enumerate}
+    \item Una expresión de tipos $\sigma$ (escribimos $\appTSust{\sigma}$)
+    \item Un término M (escribimos $\appTSust{M}$)
+    \item Un contexto de tipado
+    $\Gamma = \{ x_1 : \sigma_1, \dots, x_n : \sigma_n\}$
+    \[
+        \appTSust{\Gamma} \eqdef
+        \{
+            x_1 : \appTSust{\sigma_1}, 
+            \dots,
+            x_n : \appTSust{\sigma_n}
+        \}
+    \]
+\end{enumerate}
+
+Notaciones
+
+\begin{itemize}
+    \item El conjunto $\{ t \mid \appTSust{t} \neq t \}$ se llama \textbf{soporte}
+    de $S$, representa las variables afectadas por $S$.
+    \item Notamos $\{ \tsust{\sigma_1}{t_1}, \dots, \tsust{\sigma_n}{t_n} \}$
+    para la sustitución con soporte $\{t_1, \dots, t_n \}$
+    \item $Id$ es la \textbf{sustitución identidad}, con soporte $\emptyset$ (no
+    afecta ninguna)
+\end{itemize}
 
 \end{document}
 
