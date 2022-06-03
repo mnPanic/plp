@@ -86,15 +86,15 @@
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
 
-% texto
+% Texto
 \newcommand{\todo}[1]{{\textcolor{red}{\textbf{#1}}}}
 
-% mate general
+% Mate general
 \newcommand{\eqdef}{\overset{\text{def}}{=}}
 \newcommand{\aeq}{=_\alpha}
 \newcommand{\naeq}{\neq_\alpha}
 
-% calculo lambda
+% Calculo lambda
 \newcommand{\extendTypesWith}[1]{\sigma ::= \dots \mid #1}
 \newcommand{\lambdab}{\lambda^b}
 
@@ -164,7 +164,6 @@
 \newcommand{\expstore}[2]{#1 \mid #2}
 
 % Recursión
-
 \newcommand{\fix}[1]{\text{fix } #1}
 \newcommand{\letrec}[4]{\text{letrec } #1 : #2 = #3 \text{ in } #4}
 
@@ -187,10 +186,15 @@
 
 \newcommand{\evalsto}{\leadsto}
 
-% resolución
+% Inferencia
+\newcommand{\untypedTerms}{\Lambda}
+\newcommand{\typedTerms}{\Lambda_\tau}
+\newcommand{\erase}[1]{\text{Erase}(#1)}
+
+% Resolución
 \newcommand{\resol}[2]{\frac{#1}{#2}}
 
-% subtipado
+% Subtipado
 \newcommand{\subt}[2]{#1 <: #2}
 
 \newcommand{\ligada}[1]{\underbrace{#1}_{\text{ligada}}}
@@ -2188,6 +2192,57 @@ fix:
         }
         {N}
 \]
+
+\section{Inferencia de tipos}
+
+Consiste en transformar términos \textbf{sin} información de tipos o con
+información \textbf{parcial} en terminos terminales \textbf{tipables}, con toda
+la información de tipos.
+
+Para eso tenemos que \textit{inferir} la parte de los tipos que nos faltan.
+
+Es un beneficio, porque escribir tipos puede ser error prone y tedioso. El
+mecanismo que vamos a ver se realiza en tiempo de compilación y no en runtime.
+
+Para comenzar con la inferencia vamos a denotar el conjunto de términos sin
+anotaciones de tipos por $\untypedTerms$ (a diferencia de $\typedTerms$ que sí),
+que son todos los mismos pero reemplazando $\abs{x}{\select{\sigma}}{M}$ por
+$\uabs{x}{M}$.
+
+\begin{nota}
+    No van a funcionar las reglas de evaluación con $\untypedTerms$.
+    Es importante inferir los tipos antes de hacer cualquier tipo de semántica,
+    porque sino no tendríamos garantía de no estar evaluando cosas como
+    $\app{true}{false}$ que no tienen sentido.
+\end{nota}
+
+\subsection{Definición formal de inferencia}
+
+Para obtener estos tipos $\untypedTerms$, vamos a usar la función Erase.
+
+\begin{definition}(Erase)
+    Llamamos $\erase{\cdot}$ a la función que dado un término de LC
+    \textit{elimina} las anotaciones de tipos de las abstracciones.
+
+    $\erase{\cdot}: \tfunc{\typedTerms}{\untypedTerms}$ se define de la manera
+    esperada.
+
+    \begin{example*}
+        \(\erase{\abs{x}{\select{Nat}}{\abs{f}{\select{\tfunc{Nat}{Nat}}}{\app{f}{x}}}}
+        =
+        \uabs{x}{\uabs{f}{\app{f}{x}}}
+        \)
+    \end{example*}
+\end{definition}
+
+Y así podemos definir formalmente el problema de la inferencia: Dado un término
+$U$ \textbf{sin} anotaciones de tipo, hallar un término estándar (\textbf{con}
+anotaciones de tipo) $M$ tal que
+
+\begin{enumerate}
+    \item $\Gtipa{M}{\sigma}$ para algun $\Gamma, \sigma$, y
+    \item $\erase{M} = U$
+\end{enumerate}
 
 \end{document}
 
