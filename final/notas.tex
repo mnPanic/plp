@@ -197,8 +197,33 @@
 \newcommand{\types}{\mathcal{T}}
 \newcommand{\erase}[1]{\text{Erase}(#1)}
 
-\newcommand{\appTSust}[1]{S#1} % apply type sust
-\newcommand{\tsust}[2]{#1/#2} % type sust
+\newcommand{\tsust}[1]{S#1} % apply type sust
+\newcommand{\sustfor}[2]{#1/#2} % type sust
+
+\newcommand{\GTipaInst}[2]{\tipa{\Gamma'}{#1'}{#2'}} % instancia
+
+\newcommand{\infer}[1]{\mathbb{W}(#1)}
+
+\newcommand{\tcontextOne}[2]{\{ #1 : #2 \}} % type context
+\newcommand{\etipa}[2]{\tipa{\emptyset}{#1}{#2}} % emptyset tipa
+
+\newcommand{\comp}[2]{#1 \circ #2}
+\newcommand{\unify}[2]{#1 \doteq #2}
+
+\newcommand{\unifySetD}{\{
+    \unify{\sigma_1}{\sigma_1'},
+    \dots,
+    \unify{\sigma_n}{\sigma_n'} 
+\}}
+
+%% Unificación
+\newcommand{\simpSust}[1]{\mapsto_{#1}}
+\newcommand{\simp}{\mapsto}
+
+\newcommand{\asimpSust}[2]{\mapsto_{#2}^{#1}} % annotated
+\newcommand{\asimp}[1]{\mapsto^{#1}}
+
+\newcommand{\mgu}[2]{\text{MGU}(\{ \unify{#1}{#2} \})}
 
 % Resolución
 \newcommand{\resol}[2]{\frac{#1}{#2}}
@@ -2337,7 +2362,7 @@ por cualquier expresión de tipos nos da una solución válida.
 Una \textbf{sustitución} es una función que mapea variables de tipo en
 expresiones de tipo. Usamos S, T, para sustituciones. Formalmente,
 $S : \tfunc{\typeVars}{\types}$. La idea de la sustitución es instanciar las
-variables de tipos en tipos concretos, por ejemplo $\appTSust{s} = Int$.
+variables de tipos en tipos concretos, por ejemplo $\tsust{s} = Int$.
 
 Solo nos interesan las $S$ tales que $\{ t \in \typeVars \mid St \neq t \}$ es
 finito (este es un detalle técnico para que no sea infinita la sustitución)
@@ -2345,16 +2370,16 @@ finito (este es un detalle técnico para que no sea infinita la sustitución)
 Se pueden aplicar a,
 
 \begin{enumerate}
-    \item Una expresión de tipos $\sigma$ (escribimos $\appTSust{\sigma}$)
-    \item Un término M (escribimos $\appTSust{M}$)
+    \item Una expresión de tipos $\sigma$ (escribimos $\tsust{\sigma}$)
+    \item Un término M (escribimos $\tsust{M}$)
     \item Un contexto de tipado
     $\Gamma = \{ x_1 : \sigma_1, \dots, x_n : \sigma_n\}$
     \[
-        \appTSust{\Gamma} \eqdef
+        \tsust{\Gamma} \eqdef
         \{
-            x_1 : \appTSust{\sigma_1}, 
+            x_1 : \tsust{\sigma_1}, 
             \dots,
-            x_n : \appTSust{\sigma_n}
+            x_n : \tsust{\sigma_n}
         \}
     \]
 \end{enumerate}
@@ -2362,13 +2387,666 @@ Se pueden aplicar a,
 Notaciones
 
 \begin{itemize}
-    \item El conjunto $\{ t \mid \appTSust{t} \neq t \}$ se llama \textbf{soporte}
+    \item El conjunto $\{ t \mid \tsust{t} \neq t \}$ se llama \textbf{soporte}
     de $S$, representa las variables afectadas por $S$.
-    \item Notamos $\{ \tsust{\sigma_1}{t_1}, \dots, \tsust{\sigma_n}{t_n} \}$
+    \item Notamos $\{ \sustfor{\sigma_1}{t_1}, \dots, \sustfor{\sigma_n}{t_n} \}$
     para la sustitución con soporte $\{t_1, \dots, t_n \}$
     \item $Id$ es la \textbf{sustitución identidad}, con soporte $\emptyset$ (no
     afecta ninguna)
 \end{itemize}
+
+\subsection{Instancia de un juicio de tipado}
+
+\begin{definition}[Instancia de un juicio de tipado]
+    Un juicio de tipado $\GTipaInst{M}{\sigma}$ es una \textbf{instancia} de
+    $\Gtipa{M}{\sigma}$ si existe una sustitución de tipos $S$ tal que
+
+    \[
+        \Gamma' \supseteq \tsust{\Gamma},
+        M' = \tsust{M}
+        \text{ y }
+        \sigma' = \tsust{\sigma}
+    \]
+
+    \textit{Es agarrar y aplicar la sust $S$ a todas las partes. $G'$ puede ser un poco más grande, tiene que incluir.}
+\end{definition}
+
+\begin{proposition}
+    Si $\Gtipa{M}{\sigma}$ es derivable, entonces cualquier instancia del mismo
+    también lo es.
+\end{proposition}
+
+\subsection{Función de inferencia $\infer{\cdot}$}
+
+Vamos a definir una función $\infer{\cdot}$ que dado un término $U$ sin
+anotaciones de tipo, verifica
+
+\begin{itemize}
+    \item \textbf{Corrección}: $\infer{U} = \Gtipa{M}{\sigma}$ implica
+    \begin{itemize}
+        \item $\erase{M} = U$ y
+        \item $\Gtipa{M}{\sigma}$ es derivable
+    \end{itemize}
+
+    \textit{Dado el U nos devuelve algo que chequea tipos y al borrarle los tipos nos devuelve U. I.e es correcto}
+
+    \item \textbf{Completitud}: Si $\Gtipa{M}{\sigma}$ es derivable y $\erase{M}
+    = U$ entonces
+
+    \begin{itemize}
+        \item $\infer{U}$ tiene éxito, y
+        \item produce un juicio de tipado $\GTipaInst{M}{\sigma}$ tal que
+        $\Gtipa{M}{\sigma}$ es instancia de él. \textit{Se dice que
+        $\infer{\cdot}$ computa un \textbf{tipo principal}, el más general. Tal
+        vez no instancia algunas cosas}.
+    \end{itemize}
+
+    \textit{Si existe ese M, queremos que el algoritmo de $\infer{\cdot}$ ande.
+   No necesariamente lo encuentra exactamente, pero al menos produce una
+   instancia.}
+
+   \begin{nota}
+       Tal vez sabemos que existe un juicio que tipa a un término como
+       $\tfunc{Nat}{Nat}$, pero en realidad se puede tipar como algo más
+       general, como $\tfunc{s}{s}$. El algoritmo debería devolver el más
+       general y no la instancia.
+   \end{nota}
+\end{itemize}
+
+\subsection{Unificación}
+
+\begin{nota}
+    Motivación
+
+    Queremos definir $\infer{\suc{U}} \eqdef$. Suponemos que $\infer{U} =
+    \Gtipa{M}{\tau}$, y queremos saber si $\tau$ puede ser un $Nat$, si son
+    \textit{compatibles}.
+    
+    Idea: yo tengo dos expr de tipos, y quiero ver si son compatibles, las puedo
+    ver como iguales. Para eso tengo que sustituir adecuadamente. Si encuentro
+    una sustitución que me da que son iguales, entonces son compatibles.
+\end{nota}
+
+El proceso de determinar si existe una sustitución $S$ tal que dos expresiones
+de tipos $\sigma, \tau$ son unificables (i.e $\tsust{\sigma} =
+\tsust{\tau}$) se llama \textbf{unificación}. Por ejemplo,
+
+\begin{itemize}
+    \item El tipo $\tfunc{s}{t}$ es \textbf{compatible} o \textbf{unificable}
+    con $\tfunc{Nat}{u}$? Si, porque podemos tomar la sustitución $S \eqdef \{
+    \sust{Nat}{s}, \sust{u}{t} \}$.
+
+    Observar que
+    \(
+        \tsust{(\tfunc{s}{t})}
+        = \tfunc{Nat}{u}
+        = \tsust{(\tfunc{Nat}{u})}
+    \)
+    ya que $S$ no afecta $Nat$ ni $u$.
+
+    \item El tipo $s$ es \textbf{unificable} con $Nat$? Si, la sust $S$ anterior
+    es tal que $\tsust{s} = \tsust{Nat}$.
+\end{itemize}
+
+\subsubsection{Composición de sustituciones}
+
+\begin{definition}[Composicion de sustituciones]
+    La \textbf{composición} de $S$ y $T$, denotada $\comp{S}{T}$, es la sustitución que
+    comporta
+
+    \[
+        (\comp{S}{T})(\sigma) = \tsust{T \sigma}
+    \]
+
+    \begin{example}
+        Sea $S = \{ \sustfor{\tfunc{u}{Bool}}{t}, \sustfor{Nat}{s} \}$ y $T = \{
+        \sustfor{v \times Nat}{u}, \sustfor{Nat}{s} \}$ entonces $\comp{S}{T} =
+        \{ \sustfor{\tfunc{(v \times Nat)}{Bool}}{t}, \sustfor{v \times Nat}{u},
+            \sustfor{Nat}{s}
+        \}$
+    \end{example}
+
+    Decimos que $S = T$ si tienen el mismo soporte (variables afectadas) y $St =
+    Tt$ para todo $t$ en su soporte.
+\end{definition}
+
+\begin{proposition} Algunas props,
+    \begin{itemize}
+        \item $\comp{S}{Id} = \comp{Id}{S} = S$
+        \item $\comp{S}{(\comp{T}{U})} = \comp{(\comp{S}{T})}{U}$
+        (asociatividad)
+        \item La conmutatividad no vale.
+    \end{itemize}
+\end{proposition}
+
+\begin{definition}
+    Una sustitución $S$ es \textbf{más general} que $T$ si existe $U$ tal que $T
+    = \comp{U}{S}$.
+
+    \textit{La idea es que $S$ es más general que $T$ porque $T$ se obtiene instanciando $S$.}
+
+    \begin{example}
+        $S = \{ \sustfor{\tfunc{t}{t}}{u} \}$ es más general que
+        $T = \{ \sustfor{\tfunc{Nat}{Nat}}{u} \}$, porque tomando
+        $U = \{ \sustfor{Nat}{t}\}$, $T = \comp{U}{S}$.
+    \end{example}
+
+    Lo que nos va a interesar en el algortimo es obtener el tipo o sustitución
+    más general.
+\end{definition}
+
+\subsubsection{MGU}
+
+\begin{definition}[Ecuación de unificación]
+    Una \textbf{ecuación de unificación} es una expresión de la forma
+    $\unify{\sigma_1}{\sigma_2}$. Una sustitución $S$ es la \textbf{solución} de
+   conjunto de ecuaciones de unificación $\unifySetD$
+   
+    si $\tsust{\sigma_1} = \tsust{\sigma_1'}, \dots, \tsust{\sigma_n} =
+    \tsust{\sigma_n'}$
+    
+    Vamos a escribir ecuaciones con reestriciones que quiero que se cumplan.
+
+    \begin{example} Ejemplos,
+        \begin{itemize}
+            \item La sust $\{ \sustfor{Bool}{v}, \sustfor{Bool \times Nat}{u}\}$
+            es solución de
+            $\{
+                \unify
+                    {\tfunc{v \times Nat}{Nat}}
+                    {\tfunc{u}{Nat}}
+            \}$ (reemplaza de ambos lados)
+            \item $ \{ \sustfor{Bool \times Bool}{v}, \sustfor{(Bool \times
+            Bool) \times Nat}{u} \}$ también
+            \item $\{ \sustfor{v\times Nat}{u} \}$ también, y es más general.
+            \item $\{ \unify{\tfunc{Nat}{s}}{t \times u} \}$ \textbf{no} tiene
+            solución.
+            \item $\{ \unify{\tfunc{u}{Nat}}{u} \}$ no tiene solución. (Occurs
+            check)
+        \end{itemize}
+    \end{example}
+\end{definition}
+
+\begin{definition}[MGU]
+Una sustitución S es un \textbf{MGU} (Unificador más general, most general
+unifier) de $\unifySetD$ si
+\begin{enumerate}
+    \item Es solución de $\unifySetD$,
+    \item Es más general que cualquier otra solución de $\unifySetD$.
+\end{enumerate}
+\begin{example}
+    La sustitución $\{ \sustfor{Bool}{v}, \sustfor{Bool \times Nat}{u} \}$
+    solución de $\{ \unify{\tfunc{v \times Nat}{Nat}}{\tfunc{u}{Nat}} \}$ pero
+    no es un MGU porque es instancia de $\{ \sustfor{v \times Nat}{u} \}$, que
+    si es MGU.
+\end{example}
+\end{definition}
+
+\subsubsection{Algoritmo de unificación}
+
+\begin{theorem}
+    Si $\unifySetD$ tiene sol, existe un MGU y es único salvo renombre de variables.
+\end{theorem}
+ 
+El algoritmo va a tener,
+
+\begin{itemize}
+    \item \textbf{Entrada}: Conjunto de ecuaciones de unificación $\unifySetD$
+    \item \textbf{Salida}:
+    \begin{itemize}
+        \item \select{MGU} S de $\unifySetD$, si tiene solución
+        \item \changed{falla} en caso contrario.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Algoritmo de Martelli-Montanari}
+
+Es un algoritmo no determinístico, porque tiene un montón de \textbf{reglas de
+simplificación} que podemos aplicar en cualquier orden. Estas simplifican
+conjuntos de pares de tipos a unificar (los goals)
+
+\[G_0 \simp G_1 \simp \dots \simp G_n \]
+
+termina cuando llegamos al goal vacío. Algunos pasos de simplificación usan una
+sustitución que representa una \textit{solución parcial} al problema,
+
+\[
+    G_0 \simp G_1
+    \simpSust{S_1} G_2
+    \simp \dots
+    \simpSust{S_k} G_n
+\]
+
+Si la secuencia es exitosa, el MGU es $\comp{S_k}{\comp{\dots}{S_1}}$
+
+\textbf{Reglas}:
+
+$\sigma, \tau$ tipos concretos y $s$ var de tipo
+
+\newcommand{\inferRule}[3]{ \{ \unify{#1}{#2} \} \cup G \simp #3}
+\begin{enumerate}
+    \item \textbf{Descomposición}
+
+    $\inferRule
+        {\tfunc{\sigma_1}{\sigma_2}}
+        {\tfunc{\tau_1}{\tau_2}}
+        {\{ \unify{\sigma_1}{\tau_1}, \unify{\sigma_2}{\tau_2} \} \cup G}
+    $
+    
+    $\inferRule{Nat}{Nat}{G}$
+
+    $\inferRule{Bool}{Bool}{G}$
+
+    \item \textbf{Eliminación de par trivial}
+    
+    $\inferRule{s}{s}{G}$
+
+    \item \textbf{Swap}: si $\sigma$ no es una variable,
+    
+    $\inferRule{\sigma}{s}{ \{ \unify{s}{\sigma} \} \cup G}$
+
+    \item \textbf{Eliminación de variable}: si $s \notin FV(\sigma)$,
+    
+    $
+        \{ \unify{s}{\sigma} \} \cup G
+        \simpSust{\{ \sustfor{\sigma}{s}\}}
+        \{\sustfor{\sigma}{s}\} G
+    $
+
+    \item \textbf{Colisión}
+    
+    $\inferRule{\sigma}{\tau}{\changed{\text{falla}}}$
+    
+    con $(\sigma, \tau) \in T \cup T^{-1}$ y
+    $T = \{
+        (Bool, Nat),
+        (Nat, \tfunc{\sigma_1}{\sigma_2}),
+        (Bool, \tfunc{\sigma_1}{\sigma_2})
+    \}$
+
+    ($T^{-1}$ es invertir los pares)
+
+    \item \textbf{Occur check}: si $s \neq \sigma$ y $s \in FV(\sigma)$
+    
+    $\inferRule{s}{\sigma}{\changed{\text{falla}}}$
+\end{enumerate}
+
+Para la regla de descomposición de Nat y Nat, Bool y Bool podrían surgir por ej.
+de una descomposición de una func.
+
+\[
+    \{ \unify{\tfunc{Nat}{t}}{\tfunc{Nat}{s}} \}
+    \simp
+    \{ \select{\unify{Nat}{Nat}}, \unify{s}{t} \}
+    \simp
+    \{ \unify{s}{t} \}
+\]
+
+Ejemplo de secuencia exitosa
+\begin{alignat*}{2}
+    & &&\{\unify
+            {\tfunc
+                {\select{(\tfunc{Nat}{r})}}
+                {\changed{(\tfunc{r}{u})}
+            }}
+            {\tfunc
+                {\select{t}}
+                {\changed{\tfunc{(\tfunc{s}{s})}{t}}}
+            }
+    \}\\
+    &\asimp{1}
+    &&\{ 
+        \select{\unify{\tfunc{Nat}{r}}{t}},
+        \unify{\tfunc{r}{u}}{\tfunc{(\tfunc{s}{s})}{t}}
+    \}\\
+    &\asimp{3}
+    &&\{ 
+        \select{\unify{t}{\tfunc{Nat}{r}}},
+        \unify{\tfunc{r}{u}}{\tfunc{(\tfunc{s}{s})}{t}}
+    \}\\
+    &\asimpSust{4}{\sustfor{\tfunc{Nat}{r}}{t}}
+    &&\{ 
+        \unify
+            {\tfunc{\select{r}}{\changed{u}}}
+            {\tfunc
+                {\select{(\tfunc{s}{s})}}
+                {\changed{(\tfunc{Nat}{r})}}
+            }
+    \}\\
+    &\asimp{1}
+    &&\{ 
+        \select{\unify{r}{\tfunc{s}{s}}},
+        \unify{u}{\tfunc{Nat}{r}}
+    \}\\
+    &\asimpSust{4}{\sustfor{\tfunc{s}{s}}{r}}
+    &&\{
+        \unify{u}{\tfunc{Nat}{(\tfunc{s}{s})}}
+    \}\\
+    &\asimpSust{4}{\sustfor{\tfunc{Nat}{(\tfunc{s}{s})}}{u}}
+    &&\emptyset
+\end{alignat*}
+
+El MGU es
+\begin{align*}
+    &\{ \sustfor{\tfunc{Nat}{(\tfunc{s}{s})}}{u} \}
+    \ \circ\
+    \{ \sustfor{\tfunc{s}{s}}{r} \}
+    \ \circ\
+    \{ \sustfor{\tfunc{Nat}{r}}{t} \}\\
+    =\
+    &\{
+        \sustfor{\tfunc{Nat}{(\tfunc{s}{s})}}{t},
+        \sustfor{\tfunc{s}{s}}{r},
+        \sustfor{\tfunc{Nat}{(\tfunc{s}{s})}}{u}
+    \}
+\end{align*}
+
+Ejemplo de secuencia fallida
+\begin{alignat*}{2}
+    & &&\{\unify
+        {\tfunc{r}{(\tfunc{s}{r})}}
+        {\tfunc{s}{(\tfunc{(\tfunc{r}{Nat})}{r})}}
+    \}\\
+    &\asimp{1}
+    &&\{
+        \unify{r}{s},
+        \unify{\tfunc{s}{r}}{\tfunc{(\tfunc{r}{Nat})}{r}}
+    \}\\
+    &\asimpSust{4}{\sustfor{s}{r}}
+    &&\{
+        \unify{\tfunc{s}{s}}{\tfunc{(\tfunc{s}{Nat})}{s}}
+    \}\\
+    &\asimp{1}
+    &&\{
+        \unify{s}{\tfunc{s}{Nat}},
+        \unify{s}{s}
+    \}\\
+    &\asimp{6}
+    &&\changed{\text{falla}}
+\end{alignat*}
+
+
+\begin{theorem}
+    El algoritmo de Martelli-Montanari siempre termina. Y sea G un conjunto de
+    pares,
+    
+    \begin{itemize}
+        \item si $G$ tiene un unificador, el algoritmo termina exitosamente y
+        retorna un MGU
+        \item Si no tiene unificador, el algoritmo termina con \changed{falla}
+    \end{itemize} 
+\end{theorem}
+
+\subsection{Algoritmo de inferencia}
+
+Términos simples
+
+\begin{align*}
+    \infer{0} &\eqdef \etipa{0}{Nat}\\
+    \infer{true} &\eqdef \etipa{true}{Bool}\\
+    \infer{false} &\eqdef \etipa{false}{Bool}\\
+    \infer{x} &\eqdef \tipa{\tcontextOne{x}{s}}{x}{s}
+    \text{, con s variable fresca}
+\end{align*}
+
+\subsubsection{Inferencia de succ}
+
+Sea $\infer{U} = \Gtipa{M}{\tau}$, $S = \mgu{\tau}{Nat}$,
+
+$$\infer{\suc{U}} \eqdef \tipa{\tsust{\Gamma}}{\tsust{\ \suc{M}}}{Nat}$$
+
+La idea para términos complejos es aplicar recursivamente el algoritmo para los
+sub-términos, y luego unificar los resultados.
+
+\textit{similar para pred}
+
+\subsubsection{Inferencia de iszero}
+
+Sea $\infer{U} = \Gtipa{M}{\tau}$, $S = \mgu{\tau}{Nat}$
+
+$$\infer{\iszero{U}} \eqdef \tipa{\tsust{\Gamma}}{\tsust{\ \iszero{M}}}{Bool}$$
+
+\subsubsection{Inferencia de IfThenElse}
+
+Sean
+
+\begin{itemize}
+    \item $\infer{U} = \tipa{\Gamma_1}{M}{\rho}$
+    \item $\infer{V} = \tipa{\Gamma_2}{P}{\sigma}$
+    \item $\infer{W} = \tipa{\Gamma_3}{Q}{\tau}$
+    \item
+    $S = \text{MGU}(
+        \{
+            \unify{\sigma_1}{\sigma_2} \mid
+            x : \sigma_1 \in \Gamma_i
+            \text{ y } x : \sigma_2 \in \Gamma_j,
+            i \neq j
+        \}
+        \cup \{ \unify{\sigma}{\tau}, \unify{\rho}{Bool} \}
+    )$
+\end{itemize}
+
+Entonces
+
+\begin{gather*}
+    \infer{\ifte{U}{V}{W}} \eqdef\\
+    \tipa
+        {\tsust{\Gamma_1} \cup \tsust{\Gamma_2} \cup \tsust{\Gamma_3}}
+        {\tsust{(\ifte{M}{P}{Q})}}
+        {\tsust{\sigma}}
+\end{gather*}
+
+\begin{nota}
+    En un if, $V$ y $W$ tenían que tener el mismo tipo ($\unify{\sigma}{\tau}$)
+    y $U$ tiene que ser algo compatible con bool ($\unify{\rho}{Bool}$).
+
+    Además, Tenemos que pedir que los contextos de unificacion sean compatibles.
+    Por ej. si tenemos $x : Bool \in \Gamma_1$ y $x : s \in \Gamma_2$, podemos
+    hacer $\sustfor{Bool}{s}$. Pero si tenemos cosas no compatibles como $x :
+    Bool \in \Gamma_1$ y $x : \changed{Nat} \in \Gamma_2$, no hay nada que se
+    pueda hacer.
+
+    Para el tipo del if en el juicio, podría haber elegido tanto
+    $\tsust{\sigma}$ como $\tsust{\tau}$ porque son iguales. Elegimos $\sigma$
+   forma arbitraria.
+\end{nota}
+
+\subsubsection{Inferencia de aplicación}
+
+Sean
+
+\begin{itemize}
+    \item $\infer{U} = \tipa{\Gamma_1}{M}{\tau}$
+    \item $\infer{V} = \tipa{\Gamma_2}{N}{\rho}$
+    \item $S = \text{MGU} (
+        \{
+            \unify{\sigma_1}{\sigma_2} \mid
+            x : \sigma_1 \in \Gamma_1
+            \text{ y } x : \sigma_2 \in \Gamma_2
+        \}
+        \cup \{ \unify{\tau}{\tfunc{\rho}{t}} \}
+    )$, con $t$ una variable fresca
+\end{itemize}
+
+entonces
+
+\[
+    \infer{\app{U}{V}} \eqdef
+    \tipa
+        {\tsust{\Gamma_1} \cup \tsust{\Gamma_2}}
+        {\tsust{(\app{M}{N})}}
+        {\tsust{t}}
+\]
+
+\subsubsection{Inferencia de abstracción}
+
+Sea $\infer{U} = \Gtipa{M}{\rho}$. Tenemos dos posibilidades,
+
+\begin{itemize}
+    \item Si el contexto de tipado tiene información sobre $x$
+    (i.e $\tienetipo{x}{\tau}{\Gamma}$ para algún $\tau$), entonces
+    \[
+        \infer{\uabs{x}{U}} \eqdef
+        \tipa
+            {\Gamma \setminus \{ x: \tau\}}
+            {\abs{x}{\tau}{M}}
+            {\tfunc{\tau}{\rho}}
+    \]
+
+    \textit{lo sacamos de $\Gamma$ porque los contextos de tipado son para variables libres, y a $x$ la vamos a ligar.}
+
+    \item Si no tiene (i.e $x \notin \text{Dom}({\Gamma})$) elegimos una
+    variable fresca $s$ y
+    \[
+        \infer{\uabs{x}{U}} \eqdef
+        \Gtipa
+            {\abs{x}{s}{M}}
+            {\tfunc{s}{\rho}}
+    \]
+\end{itemize}
+
+\subsubsection{Inferencia de fix}
+
+Sean $\infer{U} = \Gtipa{M}{\tau}$, $S = \mgu{\tau}{\tfunc{t}{t}}$ con $t$ una
+variable fresca. Entonces,
+
+\[
+    \infer{\fix{U}} \eqdef
+    \tipa
+        {\tsust{\Gamma}}
+        {\tsust{\fix{(M)}}}
+        {\tsust{t}}
+\]
+
+\subsubsection{Ejemplo de inferencia}
+
+Veamos la inferencia de $\ifte{true}{\suc{\app{x}{y}}}{\app{x}{(\suc{y})}}$.
+Para ello es más fácil pensarlo sobre el AST, ya que el algoritmo es recursivo
+sobre la estructura sintáctica del término.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[level distance = 1cm]
+        \tikzstyle{level 3} = [sibling distance=0.5cm]
+        \node {IFTE}
+            child { node {true} }
+            child { 
+                node {Succ}
+                child { 
+                    node { App } 
+                    child { node {x} }
+                    child { node {y} }
+                }
+            }
+            child {
+                node { App }
+                child { node {x}}
+                child { 
+                    node { Succ }
+                    child { node {y}}
+                }
+            };
+    \end{tikzpicture}
+\end{figure}
+
+\begin{nota}
+    En la clase se ejecuta el algoritmo bottom-up, cuando yo creo que sería
+    mucho más claro hacerlo top-down.
+\end{nota}
+
+\begin{itemize}
+    \item $\infer{true} = \etipa{true}{Bool}$
+    \item $\suc{\app{x}{y}}$
+    \begin{alignat*}{2}
+        \infer{x} &=\ &&\tipa{\{x:s\}}{x}{s}\\
+        \infer{y} &=\ &&\tipa{\{y:t\}}{y}{t}\\
+        \infer{\app{x}{y}} &=\
+        &&\tipa
+            {\{ x: \tfunc{t}{r}, y: t\}}
+            {\app{x}{y}}
+            {r}\\
+        & &&\text{donde } S = \mgu{s}{\tfunc{t}{r}} = \{ \sust{\tfunc{t}{r}}{s}
+        \}\\
+        \infer{\suc{\app{x}{y}}} &=\
+        &&\tipa
+            {\{ x: \tfunc{t}{Nat}, y: t \}}
+            { \suc{\app{x}{y}} }
+            {Nat}\\
+        & &&\text{donde } S = \mgu{r}{Nat} = \{ \sustfor{Nat}{r} \}
+    \end{alignat*}
+
+    \item $\app{x}{(\suc{y})}$
+    \begin{alignat*}{2}
+        \infer{y} &=\ &&\tipa{\{y:v\}}{y}{v}\\
+        \infer{\suc{y}} &=\
+            &&\tipa{\{y: Nat\}}{\suc{y}}{Nat}\\
+            & &&\text{donde } S = \mgu{v}{Nat} = \{ \sustfor{Nat}{v} \} \\
+        \infer{x} &=\ &&\tipa{\{x:u\}}{x}{u}\\
+        \infer{\app{x}{\suc{y}}} &=\
+        &&\tipa
+            {\{ x: \tfunc{Nat}{w}, y:Nat \}}
+            {\app{x}{\suc{y}}}
+            {w}\\
+        & &&\text{donde } S = \mgu{u}{\tfunc{Nat}{w}} = \{
+        \sustfor{\tfunc{Nat}{w}}{u} \}
+    \end{alignat*}
+    \item $M = \ifte{true}{\suc{\app{x}{y}}}{\app{x}{(\suc{y})}}$
+    \begin{alignat*}{2}
+        \infer{true} &=\
+            &&\etipa{true}{Bool}\\
+        \infer{\suc{\app{x}{y}}} &=\
+            &&\tipa
+            {\{ x: \tfunc{t}{Nat}, y: t \}}
+            { \suc{\app{x}{y}} }
+            {Nat}\\
+        \infer{\app{x}{\suc{y}}} &=\
+            &&\tipa
+            {\{ x: \tfunc{Nat}{w}, y:Nat \}}
+            {\app{x}{\suc{y}}}
+            {w}\\
+        \infer{M} &=\
+            &&\tipa
+                {\{ x: \tfunc{Nat}{Nat}, y: Nat\}}
+                {M}
+                {Nat}\\
+        & && \text{donde }
+        S = \text{MGU}(\{
+            \unify{\tfunc{t}{Nat}}{\tfunc{Nat}{w}},
+            \unify{t}{Nat},
+            \unify{Nat}{w}
+        \})\\
+        & &&= \{ \sustfor{Nat}{t}, \sustfor{Nat}{w} \}
+    \end{alignat*}
+
+    $\unify{\tfunc{t}{Nat}}{\tfunc{Nat}{w}}$, $\unify{t}{Nat}$ salen de unificar
+    contextos y $\unify{Nat}{w}$ de que el tipo de ambas partes del if tiene que
+    ser igual
+\end{itemize}
+
+\subsubsection{Ejemplo de falla}
+
+$$M = \ifte{true}{\app{x}{\num{2}}}{\app{x}{true}}$$
+\begin{align*}
+    \infer{x} &= \tipa{\tcontextOne{x}{s}}{x}{s}\\
+    \infer{\num{2}} &= \etipa{\num{2}}{Nat}\\
+    \infer{\app{x}{\num{2}}} &=
+        \tipa
+            {\tcontextOne{x}{\tfunc{Nat}{t}}}
+            {\app{x}{\num{2}}}
+            {t}\\
+    \\
+    \infer{x} &= \tipa{\tcontextOne{x}{u}}{x}{u}\\
+    \infer{true} &= \etipa{true}{Bool}\\
+    \infer{\app{x}{true}} &=
+        \tipa
+            {\tcontextOne{x}{\tfunc{Bool}{v}}}
+            {\app{x}{true}}
+            {v}\\
+    \\
+    \infer{M} &= \text{\changed{falla}}
+\end{align*}
+
+porque no existe el $\mgu{\tfunc{Nat}{t}}{\tfunc{Bool}{v}}$.
 
 \end{document}
 
