@@ -28,6 +28,10 @@
 \usepackage{xcolor}                 % colores https://es.overleaf.com/learn/latex/Using_colours_in_LaTeX
 
 \usepackage{framed}     % textbars
+
+\usepackage{graphicx} % Imagenes
+\graphicspath{img/}
+
 % Texto
 \usepackage[shortlabels]{enumitem}  % enumerate con letras
 
@@ -132,6 +136,8 @@
 \newcommand{\reg}[1]{\{\ #1\ \}}
 \newcommand{\proj}[2]{#1 . #2}
 
+\newcommand{\treg}[1]{\{ #1 \}}
+
 \newcommand{\iesimo}[1]{#1_i^{\ \ i \in 1..n}}
 
 % Lambda bnu
@@ -183,6 +189,7 @@
 
 \newcommand{\deriv}[3]{\trfrac[(#1)]{#2}{#3}}
 \newcommand{\derivok}[1]{\trfrac[]{\checkmark}{#1}}
+\newcommand{\ederiv}[2]{\trfrac{#1}{#2}} % empty deriv
 
 % Para indicar que algo se conv en valor
 \newcommand{\changed}[1]{\textcolor{red}{#1}}
@@ -233,6 +240,9 @@
 
 \newcommand{\ligada}[1]{\underbrace{#1}_{\text{ligada}}}
 \newcommand{\libre}[1]{\underbrace{#1}_{\text{libre}}}
+
+\newcommand{\tsource}[1]{\text{Source } #1}
+\newcommand{\tsink}[1]{\text{Sink } #1}
 
 \author{Manuel Panichelli}
 \title{Notas para final de PLP}
@@ -1433,7 +1443,7 @@ Juicio de evaluación en un paso
 Además de los juicios de evaluación de un paso de $\lambdab$ \todo{Agregar
 referencia}
 
-\subsection{$\lambdareg$ - Registros}
+\subsection{$\lambdareg$ - Registros}\label{sec:lambda-reg}
 
 Sea $\mathcal{L}$ un conjunto de \textbf{etiquetas}, los tipos son:
 
@@ -1518,7 +1528,7 @@ Semántica operacional:
             }    
         \end{gathered}
     }\\   
-\text{(se reducen de izquierda a derecha)}\\
+\text{(se reducen de izquierda a derecha)}\\\\
 \deriv{E-ProjRcd}
     {j \in 1..n}
     {\reduce{\proj{\reg{l_i = \iesimo{V}}}{l_j}}{V_j}}\\
@@ -3047,6 +3057,491 @@ $$M = \ifte{true}{\app{x}{\num{2}}}{\app{x}{true}}$$
 \end{align*}
 
 porque no existe el $\mgu{\tfunc{Nat}{t}}{\tfunc{Bool}{v}}$.
+
+\section{Subtipado}
+
+\textit{Diego: lo más relevante es el contexto, algunos detalles no son tan importantes.}
+
+\begin{nota}
+    Motivación
+
+    El sistema de tipos que estudiamos descarta programas incorrectos, pero
+    también algunos "buenos"
+    \[
+        \app
+            {(\abs{x}{\reg{a: Nat}}{\proj{x}{a}})}
+            {\reg{a = 1,\ b = true}}
+    \]
+    este término no tipa porque tiene que ser exactamente $\reg{a: Nat}$, pero
+    no tendría nada de malo que tenga cosas demás.
+
+    Cuando uno tipa de alguna manera lo que quiere evitar es darle semántica a
+    cosas que no tienen sentido, pero estamos rechazando cosas que en runtime
+    andarían bien.
+\end{nota}
+
+\subsection{Principio de sustitutividad}
+
+Es una relación de dos tipos,
+
+\[
+    \subt{\sigma}{\tau}
+\]
+
+Se lee como ``En todo contexto donde se espera una expresión de tipo $\tau$,
+puede usarse una de tipo $\sigma$ en su lugar \textbf{sin} que ello genere un
+error''.
+
+Otras formas de verlo:
+
+\begin{itemize}
+    \item Podemos decir que $\sigma$ es un \textbf{subtipo} de $\tau$ y $\tau$
+    \textbf{supertipo} de $\sigma$.
+    \item Todo valor descripto por $\sigma$ también es descripto por $\tau$
+    \item Los elementos de $\sigma$ son un subconjunto de los elementos de
+    $\tau$.
+\end{itemize}
+
+
+
+Y se refleja con una nueva regla de tipado llamada \textbf{subsumption}
+
+\[
+    \deriv{T-Subs}
+        {\Gtipa{M}{\sigma} \quad \subt{\sigma}{\tau}}
+        {\Gtipa{M}{\tau}}
+\]
+
+Ejemplos:
+
+\begin{itemize}
+    \item $M: Nat$ y se que $\subt{Nat}{Int}$ puedo ver a $M: Int$.
+    \item $M: Perro$ y se que $\subt{Perro}{Animal}$ (perro es un subtipo de
+    animal), entonces puedo ver a $M: Animal$.
+\end{itemize}
+
+Antes nuestro sistema de tipos estaba guiado por sintaxis, pero ahora tenemos
+algo que no necesariamente viene de ahí.
+
+\subsection{Reglas de subtipado}\label{sec:subt-reglas}
+
+Para los tipos base asumimos que nos informan de que manera están relacionados,
+son como reglas \textit{axiomáticas}
+\begin{gather*}
+    \deriv{S-NatFloat}{}{\subt{Nat}{Float}}
+    \quad
+    \deriv{S-IntFloat}{}{\subt{Int}{Float}}\\
+    \deriv{S-BoolNat}{}{\subt{Bool}{Nat}}
+\end{gather*}
+\textit{porque Bool se puede tomar como 0 y 1}
+
+Además, podemos definir un pre orden a partir de la relación de subtipado
+
+\[
+    \deriv{S-Refl}
+        {}
+        {\subt{\sigma}{\sigma}}
+    \qquad
+    \deriv{S-Trans}
+        {\subt{\sigma}{\tau} \quad \subt{\tau}{\rho}}
+        {\subt{\sigma}{\rho}}
+\]
+
+por ej.
+
+\[
+    \deriv{S-Trans}
+        {\derivok{\subt{Nat}{Int}} \quad \derivok{\subt{Int}{Float}}}
+        {\subt{Nat}{Float}}
+\]
+
+\subsection{Subtipado en $\lambdareg$}
+
+(ver \fullref{sec:lambda-reg})
+
+\subsubsection{Subtipado \textbf{a lo ancho}}
+
+\[
+    \deriv{S-RcdWidth}
+        {}
+        {
+            \subt
+                {\reg{l_i : \sigma_i \mid i \in 1..n\select{+k}}}
+                {\reg{l_i : \sigma_i \mid i \in 1..n}}
+        }
+\]
+
+Ejemplo
+\[
+    \subt{\reg{nombre: String,\ edad: Int}}{\reg{nombre: String}}
+\]
+
+\textit{si tengo un registro y lo extiendo con más cosas lo tomo como subtipo}
+
+\begin{nota}
+    Rcd es por ReCorD
+\end{nota}
+
+Observaciones,
+
+\begin{itemize}
+    \item $\subt{\sigma}{\treg{}}$ para todo $\sigma$ record (cualquiera es
+    más grande).
+    \item No hay tipo $\tau$ tal que $\subt{\tau}{\sigma}$ para todo $\sigma$,
+    siempre puedo tomar un $\sigma$ que tenga algún elemento de un tipo
+    diferente. \textit{En general va a haber alguno que sea más chico que todos,
+    a menos que lo definamos a mano.}
+\end{itemize}
+
+\subsubsection{Subtipado \textbf{a lo profundo}}
+
+\[
+    \deriv{S-RcdDepth}
+        {\subt{\sigma_i}{\tau_i} \quad i\in I = \{1..n\}}
+        {
+            \subt
+                {\reg{l_i : \sigma_i}_{i\in I}}
+                {\reg{l_i : \tau_i}_{i\in I}}
+        }
+\]
+
+Ejemplo
+\[
+    \subt
+        {\reg{a: \select{Nat},\ b: Int}}
+        {\reg{a: \select{Float},\ b: Int}}
+\]
+
+\subsubsection{Ejemplo}
+
+\begin{gather*}
+    \deriv{S-RcdDepth}
+        {
+            \deriv{S-RcdWidth}{}
+                {\subt{\treg{a: Nat,\ b:Nat}}{\treg{a:Nat}}}
+            \quad
+            \deriv{S-RcdWidth}{}
+                {\subt{\treg{m: Nat}}{\treg{}}}
+        }
+        {
+            \begin{gathered}
+                \subt
+                {\reg{x: \treg{a: Nat,\ b:Nat}, y: \treg{m:Nat}}\\}
+                {\reg{x: \treg{a : Nat}, y: \treg{}}}
+            \end{gathered}
+        }
+\end{gather*}
+
+\subsubsection{Permutaciones de campos}
+
+Los registros son descripciones de campos, y no deberían depender del orden
+dado. Hasta ahora, $\reg{ a: Int,\ b: String} \neq \reg{ b: String,\ a: Int}$
+pero querríamos que $\subt{\reg{ a: Int,\ b: String}}{\reg{ b: String,\ a:
+Int}}$ (y también vale al revés)
+
+\[
+    \deriv{S-RcdPerm}
+        {
+            \reg{k_j : \sigma_j \mid j \in 1..n}
+            \text{ es permutación de }
+            \reg{l_i : \tau_i \mid i \in 1..n}
+        }
+        {
+            \subt
+                {\reg{k_j : \sigma_j \mid j \in 1..n}}
+                {\reg{l_i : \tau_i \mid i \in 1..n}}
+        }
+\]
+
+S-RcdPerm combinado con S-RcdWidth y S-Trans puede eliminar campos en cualquier
+parte de un registro, generando un supertipo (reordenando para que queden
+últimas las que quiero eliminar)
+
+\subsubsection{Regla combinada}
+
+\[
+    \deriv{S-Rcd}
+        {
+            \reg{l_i \mid i\in 1..\select{n}}
+            \subseteq
+            \reg{k_j \mid j \in 1.. \select{m}}
+            \quad
+            k_j = l_i \Rightarrow \subt{\sigma_j}{\tau_i}
+        }
+        {
+            \subt
+                {\reg{k_j : \sigma_j \mid j \in 1..n}}
+                {\reg{l_i : \tau_i \mid i \in 1..m}}
+        }
+\]
+
+$n$ y $m$ permiten Width, que cuando coinciden sean subtipos Depth y $\subseteq$
+Perm (además hace implícito que $m \geq n$) 
+
+\subsection{Subtipado de funciones}
+
+\begin{nota}
+    Si tengo una función que espera recibir números positivos, entonces le voy a
+    estar pasando todos los positivos. Si me pasan una que además se banca más,
+    entonces mejor, no la voy a romper. Pero si me pasan una que se banca menos
+    que los positivos, la voy a romper con algunos argumentos.
+
+    Una buena forma de pensar intuitivamente la covarianza y contravarianza es
+    hacer ejemplos con registros, que tienen la interpretación más intuitiva de
+    subtipado.
+\end{nota}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.25]{img/subtipado/funciones-diagrama-perla.png}
+    \caption{Esquema de Perla para entender el subtipado de funciones}
+\end{figure}
+
+
+\[
+    \deriv{S-Arrow | S-Func}
+        {\subt{\sigma'}{\sigma} \quad \subt{\tau}{\tau'}}
+        {\subt
+            {\tfunc{\sigma}{\tau}}
+            {\tfunc{\sigma'}{\tau'}}
+        }
+\]
+
+Para reemplazar una función por otra, tiene que
+\begin{itemize}
+    \item Bancarse todos los argumentos, o más (contravarianza)
+    \item El resultado tiene que ser reemplazable (covarianza)
+\end{itemize}
+
+Se dice que el constructor de tipos de función es \textbf{contravariante} en el
+primer argumento (dominio) y \textbf{variante} en el segundo (imagen).
+
+\subsection{Subtipado de referencias}
+
+Ref es \textbf{invariante}, solo se comparan referencias de tipos equivalentes
+
+\[
+    \deriv{S-Ref}
+        {\subt{\sigma}{\tau} \quad \subt{\tau}{\sigma}}
+        {\subt{\tref{\sigma}}{\tref{\tau}}}
+\]
+
+\textit{no hace falta que sean iguales, como con los registros y las permutaciones}.
+
+\begin{nota}
+    Justificación
+
+    \textbf{Es ref covariante?}
+
+    \[
+        \deriv{S-Ref}
+            {\subt{\sigma}{\tau}}
+            {\subt{\tref{\sigma}}{\tref{\tau}}}
+    \]
+
+    Si tengo $r: \tref{Nat}$ y hago $\dealloc{r}$, que le puedo pasar? Y la
+    escritura?
+
+    Si fuera covariante, uno esperaría que como $\subt{Int}{Float}$,
+    $\subt{\tref{Int}}{\tref{Float}}$. Pero si tengo
+
+    \begin{verbatim}
+    let r = ref 3  // r : Ref Int
+    in
+        r := 2.1;  // Ref Int <: Ref Float, T-Sub, r: Ref Float
+        !r
+        // r: Int
+        // Pero 2.1 no es int!
+    \end{verbatim}
+
+    se rompe con la asignación.
+
+    (el 2 es un int que lo puedo ver como 2.0, float, pero el 2.1 es un float y
+    no lo puedo ver como int)
+
+    \textbf{Es ref contravariante?}
+
+    \[
+        \deriv{S-Ref}
+            {\subt{\sigma}{\tau}}
+            {\subt{\tref{\tau}}{\tref{\sigma}}}
+    \]
+
+    Como $\subt{Int}{Float}$ y suponemos ref contravariante,
+    $\subt{\tref{Float}}{\tref{Int}}$
+
+    \begin{verbatim}
+    let r = ref 2.1 // r: Ref Float
+    in
+        !r
+        // Por Ref Float <: Ref Int y T-Sub, r: Ref Int
+        // r: Int
+        // Pero 2.1 no es Int!
+    \end{verbatim}
+\end{nota}
+
+\subsubsection{Refinado de Ref}
+
+Para permitir algún tipo de subtipado, se agregan nuevas clases referencias de
+solo lectura y solo escritura. $\tsource{\sigma}$ de lectura y $\tsink{\sigma}$
+de escritura.
+
+\[
+    \ederiv
+        {\GStipa{M}{\tsource{\sigma}}}
+        {\GStipa{\dealloc{M}}{\sigma}}
+    \quad
+    \ederiv
+        {\GStipa{M}{\tsink{\sigma}} \quad \GStipa{N}{\sigma}}
+        {\GStipa{\assign{M}{N}}{\tunit}}
+\]
+
+\begin{itemize}
+    \item Source (lectura) es covariante
+    
+    \[
+        \deriv{S-Source}
+            {\subt{\sigma}{\tau}}
+            {\subt{\tsource{\sigma}}{\tsource{\tau}}}
+        \quad
+        \ederiv
+            {\subt{Int}{Float}}
+            {\subt{\tsource{Int}}{\tsource{Float}}}
+    \]
+
+    $\dealloc{r}$ puede verse como $Float$ aunque $r$ sea de tipo
+    $\tsource{Int}$.
+
+    Si tengo un ref 3 y lo desreferencio, puedo verlo como int o float 3.0
+    
+    \begin{verbatim}
+        let r = ref 3
+        in
+            !r  // por Source Int <: Source Float
+        :: Float
+    \end{verbatim}
+
+    Si espero leer una ref a T, puedo esperar una ref a un tipo más bajo, más
+    informativo.
+
+    \item Sink (escritura) es contravariante.
+
+    \[
+        \deriv{S-Sink}
+            {\subt{\tau}{\sigma}}
+            {\subt{\tsource{\sigma}}{\tsource{\tau}}}
+        \quad
+        \ederiv
+            {\subt{Int}{Float}}
+            {\subt{\tsink{Float}}{\tsink{Int}}}
+    \]
+
+    Por ejemplo,
+
+    \begin{verbatim}
+        let r = ref 2.1
+        in
+            r := 3; // Usando Sink Float <: Sink Int
+            !r
+        :: Float
+    \end{verbatim}
+
+    Puedo coercionar 3 a 3.0 y no se rompe nada.
+
+    Si espero escribir sobre una Ref a T, puedo esperar una Ref a un tipo más
+    alto, menos informativo.
+\end{itemize}
+
+Se pueden relacionar con Ref,
+
+\[
+    \deriv{S-RefSource}
+        {}
+        {\subt{\tref{\tau}}{\tsource{\tau}}}
+    \quad
+    \deriv{S-RefSink}
+        {}
+        {\subt{\tref{\tau}}{\tsink{\tau}}}
+\]
+
+\subsection{Algoritmo}
+
+Muy lindo todo, pero como lo usamos para tipar? Hasta ahora nuestras reglas eran
+dirigidas por sintaxis, por lo que es inmediato implementar un algoritmo de
+chequeo de tipos a partir de ellas.
+
+Pero con T-Subs, está guiada por la \textit{oportunidad del tipo}, la podés
+aplicar cuando quieras como convenga. Esto hace que \textbf{no sea evidente como
+implementar un algoritmo} de chequeo de tipos a partir de las reglas, que no sea
+determinístico. Nos podemos sacar de encima el problema?
+
+Propuesta N°1 de sistema: cambio en la regla de aplicación
+
+La única regla en la que realmente hace falta subtipar es en la
+aplicación. Definimos una variante del sistema de tipado dirigida por sintaxis y
+la notamos con $\mapsto$.
+
+\newcommand{\GtipaAlt}[2]{\Gamma \mapsto #1 : #2}
+
+\[
+    \deriv{T-App}   
+        {
+            \GtipaAlt{M}{\tfunc{\select{\sigma}}{\tau}}
+            \quad \GtipaAlt{N}{\select{\rho}}
+            \quad \select{\subt{\rho}{\sigma}}
+        }
+        {\GtipaAlt{\app{M}{N}}{\tau}}
+\]
+
+(y cambiando el resto del sistema para que use el tipado alternativo $\mapsto$)
+
+\begin{proposition} Se puede probar por inducción en las reglas de tipado que
+    \begin{enumerate}
+        \item $\GtipaAlt{M}{\sigma}$ implica que $\Gtipa{M}{\sigma}$
+        \item $\Gtipa{M}{\sigma}$ implica que existe $\tau$ tal que
+        $\GtipaAlt{M}{\tau}$ con $\subt{\tau}{\sigma}$.
+    \end{enumerate}
+\end{proposition}
+
+Pero nos falta cubrir como implementar la relación $<:$. (recordar
+\fullref{sec:subt-reglas} y S-Rcd). Las reglas S-Refl y S-Trans no están guiadas
+por la sintaxis. Para sacarlas,
+
+\begin{nota}
+    Diego: Lo que sigue ahora es algo anecdótico
+\end{nota}
+
+\begin{itemize}
+    \item S-Refl está para resolver cosas de la pinta $\subt{Nat}{Nat}$,
+    entonces podemos remover la necesidad de la reflexividad agregando axiomas
+    para cada tipo: $\subt{Nat}{Nat}$, $\subt{Float}{Float}$,
+    $\subt{Bool}{Bool}$.
+
+    \textit{Esto se puede probar en general pero no lo probamos}
+
+    \item Con un argumento similar, se puede demostrar que no es necesaria
+    S-Trans agregando todas las combinaciones.
+\end{itemize}
+
+Sacando esas dos reglas, la parte de subtipado puede ser guiada por sintaxis?
+Si, el algoritmo es el siguiente
+
+\begin{verbatim}
+subtype(S, T) {
+    // Si es un axioma, sabemos que si. Sino,
+    // func
+    if S == S1 -> S2 and T == T1 -> T2:
+        return subtype(T1, S2) and subtype(S2, T2)
+    
+    // reg
+    if S == {kj: Sj, j in 1..m} and T == {li: Ti, i in 1..n}:
+        return {li, i in 1..n} subseteq {kj, j in 1..m} and
+            forall i exists j kj = li and subtype(Sj, Ti)
+
+    return false
+}
+\end{verbatim}
+
 
 \end{document}
 
