@@ -178,11 +178,11 @@
 \newcommand{\letrec}[4]{\text{letrec } #1 : #2 = #3 \text{ in } #4}
 
 % Reducciones
-\newcommand{\reduce}[2]{#1 \to #2}
-\newcommand{\reduceToPrime}[1]{\reduce{#1}{#1'}}
-\newcommand{\doesntReduce}[2]{#1 \not\to #2}
-\newcommand{\reducesTo}[1]{\to_\text{(#1)}}
 \newcommand{\reduces}{\to}
+\newcommand{\reducesTo}[1]{\reduces_\text{(#1)}}
+\newcommand{\reduce}[2]{#1 \reduces #2}
+\newcommand{\reduceToPrime}[1]{\reduce{#1}{#1'}}
+\newcommand{\doesntReduce}[2]{#1 \not\reduces #2}
 
 \newcommand{\reduceManyTo}{\twoheadrightarrow}
 \newcommand{\reduceMany}[2]{#1 \reduceManyTo #2}
@@ -3713,8 +3713,198 @@ Celda = function() {
 otracelda = new Celda();
 \end{minted}
 
+\newcommand{\obj}[1]{[\ #1\ ]} % objeto
+\newcommand{\attr}[2]{#1 = #2} % atributo
+\newcommand{\met}[2]{\varsigma (#1) #2} % method{args}{body}
+\newcommand{\sel}[2]{#1.#2} % selección o envío de mensaje
+\newcommand{\update}[3]{\sel{#1}{#2} \Leftarrow #3} % redefinición de método (update)
+% TODO: Debería ser algún harpoon pero no encontré como hacerlo
+\newcommand{\asgn}[3]{\sel{#1}{#2} := #3}
+
+\newcommand{\sfv}[1]{\text{fv}(#1)}
+\newcommand{\ssust}[3]{#1 \select{\{#2 / #3\}}} % sigma sust
+
+\newcommand{\attrLi}{\attr{l_i}{\met{x_i}{\iesimo{b}}}}
+
+\newcommand{\sderiv}[3]{\trfrac[{[}#1{]}]{#2}{#3}}
+\newcommand{\bigreduces}{\longrightarrow}
+\newcommand{\bigreduce}[2]{#1 \bigreduces #2}
+
 \section{Cálculo de objetos}
 
+Acá vamos a hacer semántica big step en vez de small step. De un gran paso
+llegás al valor. Vamos a ver un cálculo de objetos no tipado basado en Abadi y
+Cardelli, 98 que se llama $\varsigma$ calculo (sigma pero una sigma cheta)
+
+Ingredientes
+
+\begin{itemize}
+    \item Los objetos son la única estructura computacional
+    \item Los objetos son registros que tienen métodos como atributos (un campo
+    normal va a ser un método que devuelve siempre lo mismo)
+    \item Cada método tiene una única variable ligada que representa a
+    \texttt{self} (o \texttt{this}) y un cuerpo que produce el resultado, que
+    puede depender o no de self.
+    \item Proveen dos operaciones: envío de mensaje (invocar un método) o
+    redefinición de un método.
+\end{itemize}
+
+\subsection{Sintaxis}
+
+\begin{alignat*}{3}
+    o, b ::=
+    &  &&x  &&\text{\textit{variable}}\\
+    &|\ &&\obj{\attr{l_i}{\met{x_i}{\iesimo{b}}}} 
+    \quad&&\text{\textit{objeto}}\\
+    &| &&\sel{o}{l} &&\text{\textit{selección / envío de mensaje}}\\
+    &| &&\update{o}{l}{\met{x}{b}} &&\text{\textit{redefinición de método}}\\
+\end{alignat*}
+
+\begin{example*}
+    \[
+    o \eqdef \obj{
+        \attr{l_1}{\met{x_1}{\obj{}}},\
+        \attr{l_2}{\met{x_2}{\sel{x_2}{l_1}}}
+    }
+    \]
+
+    \begin{itemize}
+        \item $l_1$ retorna el objeto vacío
+        \item $l_2$ envía el mensaje $l_1$ a self (representado por el parámetro $x_2$)
+    \end{itemize}
+\end{example*}
+
+\subsection{Atributos vs métodos}
+
+El cálculo $\varsigma$ no incluye explícitamente atributos (campos), sino que se
+representan como métodos que no usan al parámetro self. De esta manera, el envío
+de un mensaje representa también a la selección de un atributo y la redefinición
+de un método representa también la asignación de un atributo
+
+Como abusos de notación, vamos a
+
+\begin{itemize}
+    \item Usar $\obj{\dots, \attr{l}{b}, \dots}$ en vez de
+    $\attr{l}{\met{x}{b}}$ cuando no se usa $x$ en $b$,
+    \item Usar $\asgn{o}{l}{b}$ en vez de $\update{o}{l}{\met{x}{b}}$ cuando $x$
+    no se usa en $b$.
+\end{itemize}
+
+\subsection{Variables libres}
+
+$\varsigma$ es un ligador del parámetro self $x_i$ en el cuerpo $b_i$ de la
+expresión $\met{x_i}{b_i}$.
+
+\begin{nota}
+    Esto es similar a lc, probablemente en semántica vamos a tener que hacer una
+    sustitución para ligarla.
+\end{nota}
+
+\begin{definition}[Variables libres]
+\begin{alignat*}{2}
+    &\sfv{\met{x}{b}} &&= \sfv{b} \setminus \{ x \}\\
+    &\sfv{x} &&= \{ x \} \\
+    &\sfv{\obj{\attrLi}}
+        &&= \bigcup_{i\in 1..n} \sfv{\met{x_i}{b_i}}\\
+    &\sfv{\sel{o}{l}} &&= \sfv{o} \\
+    &\sfv{\update{o}{l}{\met{x}{b}}} &&= \sfv{o.l} \cup \sfv{\met{x}{b}}
+\end{alignat*}
+
+Un término $o$ es \textbf{cerrado} si $\sfv{o} = \emptyset$.
+\end{definition}
+
+\subsection{Sustitución}
+
+\begin{alignat*}{2}
+    &\ssust{x}{c}{x} &&= c \\
+    &\ssust{y}{c}{x} &&= y \\
+    &\ssust{(\obj{\attrLi})}{c}{x}
+    &&= \obj{
+        \attr
+            {l_i}
+            {\ssust{(\met{x_i}{b_i})}{c}{x}^{i\in 1..n}}
+    }\\
+    &\ssust{(\sel{o}{l})}{c}{x} &&= \sel{\ssust{o}{x}{x}}{l}\\
+    &\ssust{\update{o}{l}{\met{y}{b}}}{c}{x}
+        &&= \update{(\ssust{o}{c}{x})}{l}{(\ssust{(\met{y}{b})}{c}{x})}\\
+    &\ssust{(\met{y}{b})}{c}{x} &&=
+        \met{y'}{\ssust{\ssust{b}{y'}{y}}{c}{x}}\\
+    & && \qquad \text{con } y' \notin
+        \sfv{\met{y}{b}}
+        \cup \sfv{c}
+        \cup \{ x \}
+\end{alignat*}
+
+Acomodamos las cosas para que no haya interferencias en la sustitución como
+clashing de nombres (primer reemplazo) y una vez que tengamos eso, aplicamos la
+sustitución que queremos.
+
+\subsection{Equivalencia de términos ($\equiv$)}
+
+Los términos $\met{x}{b}$ y $\met{y}{(\ssust{b}{y}{x})}$ con $y \notin
+\sfv{b}$ se consideran equivalentes ($\alpha$-conversión).
+
+También, dos objetos que difieren en el orden de sus componentes son
+considerados equivalentes.
+
+\[
+    \obj{
+        \attr{l_1}{\met{x_1}{\obj{}}},\
+        \attr{l_2}{\met{x_2}{\sel{x_2}{l_1}}}
+    }
+    \equiv
+    \obj{
+        \attr{l_2}{\met{x_3}{\sel{x_3}{l_1}}},\
+        \attr{l_1}{\met{x_1}{\obj{}}}
+    }
+\]
+
+\subsection{Semántica operacional}
+
+\begin{nota}
+    En lc, las reducciones llevaban de $\reduce{M}{M'}$ y eventualmente
+    aplicando muchas reducciones llegábamos a un valor. Acá vamos a llegar en
+    una sola.
+\end{nota}
+
+Los valores van a ser objetos
+
+\[
+    v ::= \obj{\attrLi}
+\]
+
+Y vamos a aplicar reducciones \textbf{big-step} $\bigreduces$, que en un paso de reducción
+pasan de una expresión a un valor.
+\begin{gather*}
+    \sderiv{Obj}{}{\bigreduce{v}{v}}\\
+    \sderiv{Sel}
+        {
+            \bigreduce{o}{v'}
+            \quad v' \equiv \obj{\attrLi}
+            \quad \bigreduce{\ssust{b_j}{v'}{x_j}}{v}
+            \quad j\in 1..n
+        }
+        {\bigreduce{\sel{o}{l_j}}{v}}\\
+    \sderiv{Upd}
+        {
+            \bigreduce{o}{\obj{\attrLi}}
+            \quad j \in 1..n
+        }
+        {
+            \bigreduce
+                {\update{o}{l_j}{\met{x}{b}}}
+                {\obj{
+                    \attr{l_j}{\met{x}{b}},\
+                    \attr{l_i}{
+                        \met{x_i}{b_i}^{i\in1..n-\{j\}}
+                    }
+                }}
+        }
+\end{gather*}
+
+En Sel reduzco $o$ hasta un valor $v'$ para saber quien es self, ligo self en
+$b_j$ que es el cuerpo del método correspondiente a $l_j$, y el resultado es
+reducir eso a un valor
 
 \end{document}
 
