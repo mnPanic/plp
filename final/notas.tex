@@ -3542,6 +3542,179 @@ subtype(S, T) {
 }
 \end{verbatim}
 
+\chapter{Paradigma de objetos}
+
+El modelo de cómputo que está detrás de POO, también puede caer diseño orientado
+a objetos pero es mucho más complejo. Acá vamos a modelar una parte chiquita.
+
+\section{Programación Orientada a Objetos}
+
+\subsubsection{Conceptos y metáfora}
+
+\begin{itemize}
+    \item Todo programa es una simulación, y cada entidad del sistema siendo
+    simulado se representa en el programa a través de un \textbf{objeto}
+    \item Los objetos son la forma de abstraer un concepto físico o conceptual
+    del mundo real
+    \item El modelo de cómputo consiste en envío de mensajes: un sistema está
+    formado por objetos que \textit{colaboran} entre sí mediante mensajes.
+    \item Los \textbf{mensajes} son solicitudes para que un objeto lleve a cabo
+    operación. El \textbf{receptor} (el objeto que lo recibe) decide como
+    llevarla a cabo, cuya implementación está descripta por un \textbf{método}.
+    \item El conjunto de mensajes que responde un objeto se denomina
+    \textbf{interfaz} o \textbf{protocolo}.
+    \item Los objetos pueden tener \textbf{estado} interno que altere el
+    comportamiento de los métodos. Se representa a través de un conjunto de
+    \textbf{colaboradores internos} (también llamados \textbf{atributos} o
+    \textbf{variables instancia})
+\end{itemize}
+
+Ejemplo:
+
+\begin{verbatim}
+unRectangulo
+    interfaz: area
+    atributos: alto y ancho
+    método: area = function() { return alto * ancho }
+\end{verbatim}
+
+La única manera de interactuar con un objeto es a través de su protocolo. Su
+implementación no puede depender de detalles de implementación de otros objetos
+(principio heredado de TADs)
+
+\begin{definition*}[Principio de ocultamiento de la información]
+    El estado de un objeto es \textbf{privado} y solamente puede ser consultado
+    o modificado por sus métodos. \textit{(No todos los lenguajes imponen esta
+    restricción)}
+\end{definition*}
+
+\subsection{Method dispatch}
+
+Cómo hacemos por atrás para saber qué método de un objeto ejecutar cuando le
+llega un mensaje? El proceso que establece la asociación mensaje-método a
+ejecutar se llama \textbf{method dispatch}.
+
+Si se hace en tiempo de \textit{compilación} (se puede determinar a partir del
+código fuente) es \textbf{method dispatch estático}. En cambio, si se hace en
+runtime es \textbf{method dispatch dinámico.}
+
+\subsection{Corrientes}
+
+Quien es responsabile de conocer los métodos de los objetos? Hay dos
+alternativas conocidas: \textbf{clasificación} y \textbf{prototipado}
+
+\subsection{Clasificación}
+
+Es la más mainstream. Las clases modelan \textbf{conceptos abstractos} del
+dominio de problema. Definen el comportamiento y la forma de un conjunto de
+objetos que instancian (sus \textbf{instancias}). Todo objeto es instancia de
+alguna clase. Son templates que tienen métodos, atributos y después se usan para
+instanciar objetos concretos.
+
+Tienen
+
+\begin{itemize}
+    \item Nombre
+    \item Definición de variables de instancia
+    \item Métodos de instancia. Por cada uno nombre, parámetros y cuerpo.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.25]{img/poo/st-point.png}
+    \caption{Ejemplo de clase en sintaxis de Smalltalk}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.25]{img/poo/st-node.png}
+    \caption{Ejemplo de clase Node en sintaxis de Smalltalk}
+\end{figure}
+
+\subsubsection{Self y super}
+
+\textbf{self} es una pseudovariable que durante la ejecución de un
+método referencia al receptor del mensaje. Se liga automáticamente y no puede
+ser asignada.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.25]{img/poo/st-self.png}
+    \caption{Ejemplo uso de self en Smalltalk}
+\end{figure}
+
+\textbf{super} es otra pseudovariable que referencia al objeto que recibe el
+mensaje. Cambia el proceso de activación al momento del envío de un mensaje.
+
+Una expresión de la forma \texttt{super msg} que aparece en el cuerpo de un
+método \texttt{m} provoca que el \textbf{method lookup} se haga desde el padre
+de la clase anfitriona de \texttt{m}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.25]{img/poo/st-super-self.png}
+    \caption{Ejemplo \texttt{super} y \texttt{self}}
+\end{figure}
+
+\subsubsection{Jerarquía de clases}
+
+Es común que nuevas clases se definan como \textit{extensiones} de clases
+existentes, agregando o cambiando el comportamiento de algunos métodos y
+agregando nuevas variables de instancia o clase. Por eso, una clase puede
+\textbf{heredar de} o \textbf{extender} de una clase existente (llamada
+\textbf{superclase}). La transitividad de esta relación induce nociones de
+\textbf{ancestros} y \textbf{descendientes}.
+
+Hay dos tipos
+
+\begin{itemize}
+    \item \textbf{Simple}: una clase tiene un único padre (salvo la raíz). Esta
+    es la que usan la mayoría de los lenguajes OO.
+    \item \textbf{Múltiple}: una clase puede tener más de una clase padre.
+    
+    Complica el proceso de method dispatch, ya que si tengo un método $m$
+    definido en más de una superclase, cual uso? Hay dos soluciones posibles:
+    \begin{itemize}
+        \item Establecer un \textit{orden de búsqueda} sobre las superclases
+        \item Pedir que se \textit{redefinan} en la clase nueva todos los
+        métodos que estén en más de una clase padre.
+    \end{itemize}
+    
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.25]{img/poo/st-inheritance.png}
+    \caption{Ejemplo de herencia en Smalltalk}
+\end{figure}
+
+\subsection{Prototipado}
+
+Construye instancias concretas que se interpretan como representantes canónicos
+de instancias (llamados prototipos). El resto de las instancias se generan
+clonando los prototipos (de forma shallow). Y los clones se pueden cambiar.
+
+Ejemplo de creado de objeto en js
+
+\begin{minted}{javascript}
+let celda = {
+    contenido: 0,
+    get: function() { return this.contenido; },
+    set: function(n) { this.contenido = n; }
+}
+
+// Generar objetos
+Celda = function() {
+    this.contenido = 0;
+    this.get = function() { return this.contenido; };
+    this.set = function(n) { this.contenido = n; };
+}
+
+otracelda = new Celda();
+\end{minted}
+
+\section{Cálculo de objetos}
+
 
 \end{document}
 

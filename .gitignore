@@ -9,3 +9,4 @@
 *.pyg
 *_minted*/
 *.toc
+*.synctex(busy)
