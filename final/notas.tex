@@ -16,7 +16,9 @@
 \usepackage{amsfonts}   % \mathbb
 \usepackage{bm}         % bold math (https://ctan.org/pkg/bm)
 \usepackage{abraces}    % \aunderbrace y \aoverbrace
+% https://tex.stackexchange.com/questions/132526/overbrace-and-underbrace-with-square-bracket
 \usepackage{mathtools}  % \mathclap
+\usepackage{stmaryrd}   % \llbracket, \rrbracket
 
 % Para hacer derivaciones y eso
 % https://personal.utdallas.edu/~hamlen/trfrac.pdf
@@ -3714,6 +3716,7 @@ otracelda = new Celda();
 \end{minted}
 
 \newcommand{\obj}[1]{[\ #1\ ]} % objeto
+\newcommand{\emptyobj}{[]} % objeto
 \newcommand{\attr}[2]{#1 = #2} % atributo
 \newcommand{\met}[2]{\varsigma (#1) #2} % method{args}{body}
 \newcommand{\sel}[2]{#1.#2} % selección o envío de mensaje
@@ -3729,6 +3732,9 @@ otracelda = new Celda();
 \newcommand{\sderiv}[3]{\trfrac[{[}#1{]}]{#2}{#3}}
 \newcommand{\bigreduces}{\longrightarrow}
 \newcommand{\bigreduce}[2]{#1 \bigreduces #2}
+
+\newcommand{\ubrace}[2]{\aunderbrace[l1r]{#1}_{#2}}
+\newcommand{\obrace}[2]{\aoverbrace[L1R]{#1}^{#2}}
 
 \section{Cálculo de objetos}
 
@@ -3876,7 +3882,7 @@ Los valores van a ser objetos
 Y vamos a aplicar reducciones \textbf{big-step} $\bigreduces$, que en un paso de reducción
 pasan de una expresión a un valor.
 \begin{gather*}
-    \sderiv{Obj}{}{\bigreduce{v}{v}}\\
+    \sderiv{Obj}{}{\bigreduce{v}{v}}\\\\
     \sderiv{Sel}
         {
             \bigreduce{o}{v'}
@@ -3884,7 +3890,7 @@ pasan de una expresión a un valor.
             \quad \bigreduce{\ssust{b_j}{v'}{x_j}}{v}
             \quad j\in 1..n
         }
-        {\bigreduce{\sel{o}{l_j}}{v}}\\
+        {\bigreduce{\sel{o}{l_j}}{v}}\\\\
     \sderiv{Upd}
         {
             \bigreduce{o}{\obj{\attrLi}}
@@ -3905,6 +3911,271 @@ pasan de una expresión a un valor.
 En Sel reduzco $o$ hasta un valor $v'$ para saber quien es self, ligo self en
 $b_j$ que es el cuerpo del método correspondiente a $l_j$, y el resultado es
 reducir eso a un valor
+
+\begin{example*} Reducción de
+\(
+    o = \sel{
+            \obj{
+                \attr{a}{\emptyobj},\
+                \attr{l}{\met{x}{\sel{x}{a}}}}
+        }
+        {l}
+\)
+
+\[
+    \sderiv{Sel}
+        {
+            \sderiv{Obj}{}{\bigreduce{o}{o}}
+            \qquad
+            \sderiv{Sel}
+                {
+                    \sderiv{Obj}{}{\bigreduce{o}{o}}
+                    \qquad
+                    \sderiv{Obj}{}
+                        {
+                            \bigreduce
+                                {
+                                    \obrace{\ssust{\emptyobj}{o}{x}}{=\emptyobj}
+                                }
+                                {\emptyobj}
+                        }
+                }
+                {
+                    \bigreduce
+                        {\obrace{\ssust{(\sel{x}{a})}{o}{x}}{=\sel{o}{a}}}
+                        {\emptyobj}
+                }
+        }
+        {
+            \bigreduce
+                {
+                    \sel{
+                        \ubrace{
+                            \obj{
+                                \attr{a}{\emptyobj},\
+                                \attr{l}{\met{x}{\sel{x}{a}}}
+                            }
+                        }{o}
+                    }
+                    {l}
+                }
+                {\emptyobj}
+        }
+\]
+\end{example*}
+
+\begin{example*} Reducción de
+\(
+    \sel
+    {
+        (\update
+            {
+                \obj{
+                    \attr{a}{\emptyobj},\
+                    \attr{l}{\met{x}{\sel{x}{a}}}}
+            }
+            {l}
+            {\met{y}{\emptyobj}})
+    }
+    {l}
+\)
+
+\[
+    \sderiv{Sel}
+        {
+            \sderiv{Upd}
+                {\sderiv{Obj}{}{\bigreduce{o}{o}}}
+                {
+                    \bigreduce{u}
+                    {
+                        \obj{
+                            \attr{a}{\emptyobj},\
+                            \attr{l}{\emptyobj}
+                        }
+                    }
+                }
+            \qquad
+            \sderiv{Obj}{}
+                {
+                    \bigreduce
+                    {
+                        \obrace{\ssust{\emptyobj}{u}{x}}{=\emptyobj}
+                    }
+                    {\emptyobj}
+                }
+        }
+        {
+            \bigreduce
+            {
+                \ubrace{\sel
+                {
+                    (\update
+                        {
+                            \ubrace{
+                                \obj{
+                                    \attr{a}{\emptyobj},\
+                                    \attr{l}{\met{x}{\sel{x}{a}}}}
+                            }{o}
+                        }
+                        {l}
+                        {\met{y}{\emptyobj}})
+                }
+                {l}}{u}
+            }
+            {\emptyobj}
+        }
+\]
+\end{example*}
+
+\begin{example*}
+Podemos tener problemas, por ej. el siguiente tiene una reducción infinita
+\(
+    \sel{
+        \ubrace{
+        \obj{
+            \attr{a}{\met{x}{\sel{x}{a}}}
+        }
+        }{o}
+    }
+    {a}
+\)
+
+es como una llamada recursiva, pero sin caso base. La evaluación de esta
+expresión se indefine. Es análogo a $\fix{\abs{x}{\sigma}{x}}$.
+
+\[
+    \sderiv{Sel}
+        {
+            \sderiv{Obj}{}{\bigreduce{o}{o}}
+            \qquad
+            \sderiv{Sel}{\vdots}{
+                \bigreduce
+                {\obrace{\ssust{\sel{x}{a}}{o}{x}}{=\ \changed{\sel{o}{a}}}}
+                {}
+            }
+        }
+        {\bigreduce{\sel{o}{a}}{}}
+\]
+
+\end{example*}
+
+\newcommand{\oname}[1]{\text{\texttt{#1}}}
+\newcommand{\true}{\oname{true}}
+\newcommand{\false}{\oname{false}}
+
+\subsection{Ejemplo: Naturales}
+
+Vamos a asumir que existen los objetos $\true$ y $\false$ que corresponden a
+booleanos.
+
+\begin{nota}
+    Se podrían definir estilo Smalltalk, y tener métodos \texttt{ifTrue} e
+    \texttt{ifFalse} que según el objeto ejecuten lo que le pasás o no.
+\end{nota}
+
+\begin{align*}
+    \oname{zero} \eqdef \obj{
+        &\attr{iszero}{\true},\\
+        &\attr{pred}{\met{x}{x}},\\
+        &\attr{succ}{
+            \met{x}
+            {
+                \assign
+                {
+                    \sel
+                    {
+                        (\assign{\sel{x}{iszero}}{\false})
+                    }
+                    {pred}
+                }
+                {x}    
+            }
+        }
+    }\\
+    \oname{uno} \eqdef\ &\sel{\oname{zero}}{succ}\\
+    \quad &
+    \textcolor{gray}
+    {
+        \bigreduce{}
+        {
+            \ubrace{
+                \obj{
+                    \attr{iszero}{\false},
+                    \attr{pred}{\oname{zero}},
+                    \attr{succ}{\dots}
+                }
+            }{\oname{uno}'}
+        }
+    }\\
+    \oname{dos} \eqdef\ &\sel{\oname{zero}}{\sel{succ}{succ}}\\
+    \quad &
+    \textcolor{gray}
+    {
+        \bigreduce{}
+        {
+            \obj{
+                \attr{iszero}{\false},
+                \attr{pred}{\oname{uno}'},
+                \attr{succ}{\dots}
+            }
+        }
+    }
+\end{align*}
+
+\subsection{Codificando calculo $\lambda$}
+
+\newcommand{\cod}[1]{\llbracket #1 \rrbracket } % codificación del lambda cálculo
+
+Podemos simular el cálculo $\lambda$ no tipado,
+
+\[
+    M ::= \app{M}{N} \mid \uabs{x}{M} \mid x
+\]
+
+\begin{nota}
+    Queremos hacer esto porque los métodos del cálculo sigma no tienen
+    argumentos, solo self. Idea intuitiva:
+
+    \begin{itemize}
+        \item Representar las funciones como objetos
+        \[
+            \obj{
+                \attr{arg}{\dots},\
+                \attr{val}{\dots}
+            }.
+        \]
+        \item Al aplicarlas, primero se asigna el valor del argumento al
+        atributo $arg$ y luego se envía el mensaje $val$ que evalúa el cuerpo de
+        la función
+        \item De esa forma, una evaluación (o aplicación) $(\app{f}{v})$ se
+        traduce en
+        \(
+            \sel{(\assign{\sel{o_f}{arg}}{o_v})}{val}
+        \)
+    \end{itemize}
+
+    Son esencialmente \textit{method objects} de ing1
+\end{nota}
+
+Vamos a definir una función $\cod{\cdot}: \tfunc{M}{a}$ que dado un término nos
+da el objeto que lo codifica.
+\begin{alignat*}{3}
+    &\cod{x} &&\eqdef &&x\\
+    &\cod{\app{M}{N}} &&\eqdef 
+        &&\sel{(\assign{\sel{\cod{M}}{arg}}{\cod{N}})}{val}\\
+    &\cod{\uabs{x}{M}} &&\eqdef
+        \obj{
+            &&\attr{val}{\ssust{\met{y}{\cod{M}}}{\sel{y}{arg}}{x}},\\
+            & && &&\textcolor{gray}{\attr{arg}{\met{y}{\sel{y}{arg}}}}
+        }
+    \\ & && &&\text{con } y\notin \sfv{M}
+\end{alignat*}
+
+en $\uabs{x}{M}$ $M$ tiene apariciones libres de $x$, entonces las reemplazamos
+por $\sel{y}{arg}$ para que funcione bien la semántica de la aplicación. En la
+codificación de la función, $arg$ lo dejamos inicialmente como algo indefinido,
+porque no tiene sentido que tenga nada real asignado ya que siempre lo vamos a
+reemplazar.
 
 \end{document}
 
