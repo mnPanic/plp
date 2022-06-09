@@ -3,6 +3,14 @@
 
 \documentclass{report}
 
+% https://es.overleaf.com/learn/latex/Page_size_and_margins
+\usepackage{geometry}
+\geometry{
+    %a4paper,
+    top=25mm,
+    bottom=25mm
+}
+
 % Font
 \usepackage[T1]{fontenc}
 % https://es.overleaf.com/learn/latex/Font_sizes%2C_families%2C_and_styles
@@ -127,7 +135,8 @@
 \newcommand{\compat}[2]{#1 \rhd #2} % compatibilidad
 \newcommand{\GSCompat}[1]{\compat{\Gamma|\Sigma}{#1}} % compatibilidad
 
-\newcommand{\fv}[1]{FV(#1)}
+\newcommand{\fv}[1]{\text{FV}(#1)} % free vars
+\newcommand{\bv}[1]{\text{BV}(#1)} % bound vars (ligadas)
 
 % Lambda bn
 \newcommand{\lambdabn}{\lambda^{bn}}
@@ -5065,6 +5074,7 @@ Este resultado establece la corrección y completitud del método de resolución
     En LPO no es tan bueno. Si encuentra una refutación significa que es
     insatisfacible (correcto) pero puede pasar que no la encontremos
     (incompleto).
+    \todo{Validar que esté bien el uso de correcto e incompleto}.
 \end{nota}
 
 \subsubsection{Resumen del algoritmo}
@@ -5081,6 +5091,212 @@ Para probar que $A$ es una tautología hacemos lo siguiente,
     satisfacible y por lo tanto $A$ no es una tautologia. (Por negación de Teo.
     \ref{teo:taut-sii-insat})
 \end{enumerate}
+
+\newcommand{\LPO}{\mathcal{L}}
+\newcommand{\paratodo}[2]{\forall #1 . #2}
+\newcommand{\existe}[2]{\exists #1 . #2}
+
+\newcommand{\lpoass}[3]{#1[#2 \gets #3]}
+\newcommand{\posat}[1]{s \models_M #1}
+\newcommand{\notposat}[1]{s \not\models_M #1}
+
+\section{Resolución SLD}
+
+\subsection{Lógica de Primer Orden}
+
+\subsubsection{Sintaxis}
+
+\begin{definition*}[Lenguaje de primer orden]
+    Un lenguaje de primer orden (LPO) $\LPO$ consiste en
+    \begin{enumerate}
+        \item Un conjunto numerable de \textbf{constantes} $c_0, c_1, \dots$
+        \item Un conjunto numerable de \textbf{símbolos de función} con aridad
+        $n > 0$ (indicando el número de argumentos) $f_0, f_1, \dots$.
+        \item Un conjunto numerable de \textbf{símbolos de predicado} con aridad
+        $n \geq 0$, $P_0, P_1, \dots$. Si $n = 0$, es una variable
+        proposicional.
+    \end{enumerate}
+\end{definition*}
+
+\begin{definition*}[Término]
+    Sea $\mathcal{V} = \set{x_0, x_1, \dots}$ un conjunto numerable de variables
+    y $\LPO$ un LPO. El conjunto de \textbf{$\LPO$-términos}
+    se define inductivamente como
+
+    \begin{enumerate}
+        \item Toda constante de $\LPO$ y toda variable es un $\LPO$-término.
+        \item Si $t_1, \dots, t_n \in$ $\LPO$-términos y $f$ es un símbolo de
+        función de aridad $n$, entonces $f(t_1, \dots, t_n) \in$ $\LPO$-términos
+    \end{enumerate}
+\end{definition*}
+
+\begin{definition*}[Fórmulas atómicas]
+    Sea $\mathcal{V}$ un conjunto numerable de variables y $\LPO$ un LPO. El
+    conjunto de $\LPO$-fórmulas atómicas se define inductivamente como,
+
+    \begin{enumerate}
+        \item Todo símbolo de predicado de aridad 0 (i.e vars proposicionales)
+        es una $\LPO$-fórmulas atómica
+        \item Si $t_1, \dots, t_n \in$ $\LPO$-términos y P es un símbolo de
+        predicado de aridad n, entonces $P(t_1, \dots, t?n)$ es una
+        $\LPO$-fórmulas atómica.
+    \end{enumerate}
+    
+\end{definition*}
+
+\begin{definition*}[Fórmulas de primer orden]
+    Sea $\mathcal{V}$ un conjunto numerable de variables y $\LPO$ un LPO. El
+    conjunto de $\LPO$-fórmulas se define inductivamente como,
+    \begin{enumerate}
+        \item Toda $\LPO$-fórmula atómica es una $\LPO$-fórmula
+        \item Si $A, B \in$ $\LPO$-fórmulas, entonces las siguientes son $\LPO$-fórmulas
+        \begin{itemize}
+            \item $\por{A}{B}$
+            \item $\y{A}{B}$
+            \item $\impl{A}{B}$
+            \item $\sii{A}{B}$
+            \item $\no{A}$.
+        \end{itemize}
+        \item Para toda variable $x_i$ y cualquier $\LPO$-fórmula A,
+        $\paratodo{x_i}{A}$ y $\existe{x_i}{A}$ son $\LPO$-fórmulas
+    \end{enumerate}
+\end{definition*}
+
+\begin{example*} LPO para aritmética
+    
+\begin{itemize}
+    \item Constantes: $0$
+    \item Símbolos de función: $S, +, *$
+    \item Símbolos de predicado: $<, =$
+
+    \item Términos: $S(0), +(S(0), S(S(0))), *(S(x_1), +(x_2, S(x_3)))$
+    \item Fórmulas atómicas: $<(0, S(0)), <(x_1, +(S(0), x_2))$
+    \item Fórmulas:
+    \begin{itemize}
+        \item $\paratodo{x}{\paratodo{y}{(
+            \impl{x < y}{\existe{z}{y = x + z}}
+        )}}$
+        \item $\paratodo{x}{\paratodo{y}{(
+            \por{(\y{x < y}{y < x})}{x = y}
+        )}}$
+    \end{itemize}
+\end{itemize}
+\end{example*}
+
+\begin{definition*}[Variables libres y ligadas]
+    Las variables pueden ocurrir \textbf{libres} o \textbf{ligadas}. Los
+    cuantificadores ligan a las variables, y usamos $\fv{A}$ para referirnos a
+    las libres y $\bv{A}$ para las ligadas. Ambos se pueden definir por
+    inducción estructural en $A$.
+    \begin{example*}
+        Si $A = \paratodo{x}{(\impl{R(x, y)}{P(x)})}$, entonces $\fv{A} =
+        \set{y}$ y $\bv{A} = \set{x}$.
+    \end{example*}
+
+    Una fórmula $A$ se dice \textbf{rectificada} si $\fv{A}$ y $\bv{A}$ son
+    disjuntos y cuantificadores distintos de $A$ ligan a variables distintas.
+    Toda fórmula se puede rectificar (renombrando vars ligadas) a una
+    lógicamente equivalente.
+    
+    \begin{nota}
+        Esto nos sirve para evitar problemas y que sea todo lindo. Por ej. si
+        tenemos $\paratodo{x}{\paratodo{x}{A}}$ es confuso, pero lo podemos
+        renombrar para que sea $\paratodo{x}{\paratodo{y}{A}}$
+    \end{nota}
+\end{definition*}
+
+\begin{definition*}[Sentencia]
+    Una \textbf{sentencia} es una fórmula cerrada (sin variables libres).
+
+    \begin{nota}
+        Muchos resultados se formulan para sentencias, lo cual no implica una
+        pérdida de generalidad ya que toda fórmula es lógicamente equivalente a
+        su \textbf{clausura universal} (la fórmula que tiene adelante $\forall$
+        para cada variable libre)
+        \[
+            \paratodo{x}{\paratodo{y}{P(x, y)}} \iff P(x, y)
+        \]
+    \end{nota}
+\end{definition*}
+
+\subsubsection{Semántica}
+
+\begin{definition*}[Estructura]
+    Dado un LPO $\LPO$ una \textbf{estructura para} $\LPO$, M, es un par M $=
+    (M, I)$ en donde
+
+    \begin{itemize}
+        \item M (\textbf{dominio}) es un conjunto no vacío
+        \item I (\textbf{función de interpretación}) asigna funciones y
+        predicados sobre $M$ a símbolos de $\LPO$ de la siguiente manera,
+        \begin{enumerate}
+            \item Para toda constante $c$, $I(c) \in M$
+            \item Para todo $f$ de aridad $n > 0$, $I(f): \tfunc{M^n}{M}$
+            \item Para todo predicado $P$ de aridad $n \geq 0$, $I(P):
+            \tfunc{M^n}{\set{T, F}}$
+        \end{enumerate}
+    \end{itemize}
+\end{definition*}
+
+\begin{definition*}[Asginación]
+    Sea M una estructura para $\LPO$. Una \textbf{asignación} es una función $s:
+    \tfunc{\mathcal{V}}{M}$.
+
+    Dado $a\in M$ usamos la notación $\lpoass{s}{x}{a}$ para denotar la
+    asignación que se comporta igual a $s$ salvo en elemento $x$, para el cual
+    retorna $a$.
+\end{definition*}
+
+\begin{definition*}[Satisfacibilidad]
+    La relación $\posat{A}$ establece que la asignación $s$ satisface la fórmula
+    en la estructura M. La definimos de manera informal por inducción
+    estructural en $A$.
+    \begin{alignat*}{2}
+        \posat{&P(t_1, ... t_n)} &&\text{ sii } P_M(s(t_1), \dots, s(t_n)) \\
+        \posat{&\no{A}} &&\text{ sii } \notposat{A} \\
+        \posat{&(\y{A}{B})} &&\text{ sii }  \posat{A} \text{ y } \posat{B} \\
+        \posat{&(\por{A}{B})} &&\text{ sii } \posat{A} \text{ o } \posat{B}\\
+        \posat{&(\impl{A}{B})} &&\text{ sii } 
+            \notposat{A} \text{ o } \posat{B} \\
+        \posat{&(\sii{A}{B})} &&\text{ sii }
+            (\posat{A} \text{ sii } \posat{B})\\
+        \posat{&\paratodo{x_i}{A}} &&\text{ sii }
+            \lpoass{s}{x_i}{a} \models_M A \text{ para todo } a \in M\\
+        \posat{&\existe{x_i}{A}} &&\text{ sii }
+            \lpoass{s}{x_i}{a} \models_M A \text{ para algún } a \in M
+    \end{alignat*}
+\end{definition*}
+
+\begin{definition*}[Validez]
+    Decimos que una fórmula $A$ es,
+
+    \begin{itemize}
+        \item \textbf{satisfactible en M} sii existe alguna asignación $s$ tal
+        que $\posat{A}$.
+        \item \textbf{satisfactible} sii existe un M tal que $A$ es
+        satisfactible en M. En caso contrario, decimos que $A$ es
+        \textbf{insatisfactible.}
+        \item \textbf{válida en M} sii $\posat{A}$ para toda asignación $s$
+        \item \textbf{válida} sii es válida en toda estructura M.
+    \end{itemize}
+
+    Y $A$ es válida sii $\no{A}$ es insatisfactible.
+\end{definition*}
+
+\begin{theorem}[Teorema de Church]
+    \textbf{No} existe un algoritmo que pueda determinar si una fórmula de
+    primer orden es válida.
+\end{theorem}
+
+\begin{nota}
+    Como consecuencia del Teoreoma de Church, el método de resolución de primer
+    orden no va a ser un \textbf{procedimiento efectivo}, sino que va a ser uno
+    de \textbf{semi decisión}:
+    \begin{itemize}
+        \item Si una sentencia es insatisfactible hallará una refutación,
+        \item Pero si es satisfactible puede que no se detenga.
+    \end{itemize}
+\end{nota}
 
 \end{document}
 
