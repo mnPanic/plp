@@ -1,3 +1,6 @@
+% https://nuanceabounds.org/fix-latex-package-option-clash-error-passoptionstopackage/
+\PassOptionsToPackage{dvipsnames}{xcolor}
+
 \documentclass{report}
 
 % Font
@@ -50,8 +53,8 @@
 \usepackage[cache=false]{minted}     % código
 
 % https://tex.stackexchange.com/questions/260566/how-to-reliably-switch-the-highlighting-color-with-soul
-\usepackage{soul}
-\DeclareRobustCommand{\hlcyan}[1]{{\sethlcolor{cyan}\hl{#1}}}
+%\usepackage{soul}
+%\DeclareRobustCommand{\hlcyan}[1]{{\sethlcolor{cyan}\hl{#1}}}
 
 
 \usetikzlibrary{arrows,positioning,automata,shadows,fit,shapes}
@@ -196,6 +199,7 @@
 % Para indicar que algo se conv en valor
 \newcommand{\changed}[1]{\textcolor{red}{#1}}
 \newcommand{\select}[1]{\textcolor{blue}{#1}}
+\newcommand{\green}[1]{\textcolor{OliveGreen}{#1}}
 
 \newcommand{\evalsto}{\leadsto}
 
@@ -3724,6 +3728,10 @@ otracelda = new Celda();
 % TODO: Debería ser algún harpoon pero no encontré como hacerlo
 \newcommand{\asgn}[3]{\sel{#1}{#2} := #3}
 
+\newcommand{\sabs}[2]{\lambda(#1) #2} % sigma abs
+\newcommand{\sapp}[2]{#1(#2)} % sigma app
+\newcommand{\scall}[3]{\sel{#1}{\sapp{#2}{#3}}}
+
 \newcommand{\sfv}[1]{\text{fv}(#1)}
 \newcommand{\ssust}[3]{#1 \select{\{#2 / #3\}}} % sigma sust
 
@@ -4176,6 +4184,317 @@ por $\sel{y}{arg}$ para que funcione bien la semántica de la aplicación. En la
 codificación de la función, $arg$ lo dejamos inicialmente como algo indefinido,
 porque no tiene sentido que tenga nada real asignado ya que siempre lo vamos a
 reemplazar.
+
+Si hacemos $\sel{\cod{\uabs{x}{x}}}{val}$, se cuelga.
+
+\begin{example}
+Ejemplos de codificación
+
+\begin{align*}
+    \cod{\uabs{x}{x}} \eqdef\ &
+        \obj{
+            \attr{val}{\ssust{\met{y}{\cod{x}}}{\sel{y}{arg}}{x}},\
+            \textcolor{gray}{\attr{arg}{\met{y}{\sel{y}{arg}}}}
+        }\\
+    =\ &\obj{
+        \attr{val}{\ssust{\met{y}{x}}{\sel{y}{arg}}{x}},\
+        \textcolor{gray}{\attr{arg}{\met{y}{\sel{y}{arg}}}}
+    }\\
+    =\ &\obj{
+        \attr{val}{\met{y}{\sel{y}{arg}}},\
+        \textcolor{gray}{\attr{arg}{\met{y}{\sel{y}{arg}}}}
+    }
+    \\\\
+    \cod{\app{(\uabs{x}{x})}{M}} \eqdef\ &
+    \sel
+        {(\assign
+            {\sel{\cod{\uabs{x}{x}}}{arg}}
+            {\cod{M}}
+        )}
+        {val}\\
+    =\ &\sel{
+            \assign{
+                \sel{
+                    \obj{
+                        \attr{val}{\met{y}{\sel{y}{arg}}},\
+                        \textcolor{gray}{\attr{arg}{\met{y}{\sel{y}{arg}}}}
+                    }
+                }
+                {arg}
+            }
+            {\cod{M}}
+        }
+        {val}\\
+    &\bigreduces \cod{M}\\ &\text{ siempre que $\cod{M}$ sea un objeto}
+\end{align*}
+\end{example}
+
+\subsubsection{Métodos con parámetros}
+
+Usando este truquito de codificación podemos extender a nuestros métodos para
+que reciban parámetros. Un método que espera un parámetro es un método cuya
+definición codifica a una función
+
+\[
+    \met{y}{\cod{\uabs{x}{M}}}
+\]
+
+como notación, vamos a escribir
+
+\begin{itemize}
+    \item $\sabs{x}{M}$ en vez de $\cod{\uabs{x}{M}}$
+    \item $\sapp{M}{N}$ en vez de $\cod{\app{M}{N}}$.
+\end{itemize}
+
+\subsubsection{Ejemplo: PUnto en el plano}
+
+Lo definimos arrancando en el origen de coordenadas pero puede ser desplazado
+
+\begin{align*}
+    \oname{origen} \eqdef \obj{
+        &\attr{x}{0},\\
+        &\attr{y}{0},\\
+        &\attr{mv\_x}{
+            \met{p}{
+                \sabs{d_x}{
+                    \assign{\sel{p}{x}}{\sel{p}{x} + d_x}
+                }
+            }
+        },\\
+        &\attr{mv\_y}{
+            \met{p}{
+                \sabs{d_y}{
+                    \assign{\sel{p}{y}}{\sel{p}{y} + d_y}
+                }
+            }
+        }
+    }
+    \\
+    \\
+    \oname{unidad} \eqdef
+        \sel{\oname{origen}}{\sel{\sapp{mv\_x}{1}}{\sapp{mv\_y}{1}}}
+\end{align*}
+
+\subsection{Codificación de clases}
+
+\begin{nota}
+    Partimos de una def de objetos que tenia métodos. Le dimos semántica,
+    agregamos un encoding (no cambió la semántica) de parámetros, y ahora vamos
+    a hacer otro encoding para \textbf{generadores de objetos} como los que
+    vimos en prototipado pero ahora clases
+\end{nota}
+
+\subsubsection{(Stateless) Trait}
+
+Un \textbf{trait} es una colección de ciertos métodos. Los stateless son un
+conjunto particular de los traits que no tienen estado: no especifican variables
+ni estado ni acceden al estado (i.e self). Una clase de construye a partir de
+traits, a veces se usan para interfaces.
+
+\begin{example}
+    Ejemplo de trait
+
+    \begin{alignat*}{1}
+        \oname{CompT} \eqdef \obj{
+            \attr{eq&}{
+                \met{t}{\sabs{x}{\sabs{y}{
+                    (\scall{x}{comp}{y}) == 0
+                }}}
+            },\\
+            \attr{lt&}{
+                \met{t}{\sabs{x}{\sabs{y}{
+                    (\scall{x}{comp}{y}) < 0
+                }}}
+            }
+        }
+    \end{alignat*}
+
+    Observar que en el cuerpo de los métodos $eq$ y $lt$, no se usa $t$ (self).
+\end{example}
+
+Los podemos pensar como una colección de \textbf{pre-métodos}: algo que
+eventualmente será un método
+
+\newcommand{\dtrait}{\oname{t} = \obj{
+    \attr{l_i}{\sabs{y_i}{\iesimo{b}}}
+}}
+
+\begin{itemize}
+    \item Un pre método es $\met{\select{t}}{\sabs{y}{b}}$ con $\select{t}
+    \notin \sfv{\sabs{y}{b}}$ (i.e no usan self)
+    \item En este caso por notación al ser un atributo podíamos omitir el
+    $\met{t}{}$ y escribir directamente $\sabs{y}{b}$, por lo que los traits
+    pasarían a ser
+
+    \[ \dtrait \]
+\end{itemize}
+
+A partir de un trait $\dtrait$ podemos definir un constructor de objetos (cuando
+$t$ es completo, tiene todos los métodos que necesita)
+
+\[
+    new \eqdef \sabs{\select{z}}{\obj{
+        \attr{l_i}{\met{s}{
+            \scall{\select{z}}{l_i}{s}^{i\in 1..n}
+        }}
+    }}
+\]
+\begin{align*}
+    o &\eqdef \sapp{new}{\select{t}}\\
+    &\approx \obj{
+        \attr{l_i}{\met{s}{
+            \scall{\select{t}}{l_i}{s}^{i\in 1..n}
+        }}
+    }\\
+    &\approx \obj{
+        \attr{l_i}{\met{y_i}{
+            \iesimo{b}
+        }}
+    }\\
+\end{align*}
+
+$new$ aprovecha el trait para crear un método real (uno en el que el self
+importa). Probablemente el $y_i$ sea lo que querramos usar después como self.
+
+\begin{example*} Ejemplo de $new$
+\begin{alignat*}{2}
+    \oname{CompT} &\eqdef \obj{
+        \attr{&&eq}{
+            \met{t}{\sabs{x}{\sabs{y}{
+                (\scall{x}{comp}{y}) == 0
+            }}}
+        },\\
+        &\attr{&&lt}{
+            \met{t}{\sabs{x}{\sabs{y}{
+                (\scall{x}{comp}{y}) < 0
+            }}}
+        }
+    }\\
+    new &\eqdef &&\sabs{\select{z}}{\obj{
+        \attr{l_i}{\met{s}{
+            \scall{\select{z}}{l_i}{s}^{i\in 1..n}
+        }}
+    }}\\
+    \sapp{new}{\oname{CompT}} &\approx
+        \obj{
+            \attr{&&eq}{\met{s}{\scall{\oname{CompT}}{eq}{s}}},\\
+            & \attr{&&lt}{\met{s}{\scall{\oname{CompT}}{lt}{s}}}
+        }\\
+    &\approx
+        \obj{
+            \attr{&&eq}{
+                \met{x}{\sabs{y}{
+                    (\scall{x}{comp}{y}) == 0
+                }}
+            },\\
+            & \attr{&&lt}{
+                \met{x}{\sabs{y}{
+                    (\scall{x}{comp}{y}) < 0
+                }}
+            }
+        }
+\end{alignat*}
+
+Acá el objeto creado es inutilizable, porque \oname{CompT} usa $comp$ que no es
+un método que define (no es completo).
+
+\end{example*}
+
+\subsubsection{Clases}
+
+Una \textbf{clase} va a ser un \textit{trait} stateless (completo) que además
+provea un método $new$.
+
+\begin{align*}
+    \oname{c} \eqdef \obj{
+        \attr{new&}{
+            \sabs{\select{z}}{\obj{
+                \attr{l_i}{\met{s}{
+                    \scall{\select{z}}{l_i}{s}^{i\in 1..n}
+                }}
+            }}
+        },\\
+        \attr{l_i&}{
+            \sabs{s}{\iesimo{b}}
+        }
+    }
+\end{align*}
+
+Luego,
+\begin{align*}
+    o &\eqdef \sel{\oname{c}}{new}\\
+    &\bigreduces \obj{
+        \attr{l_i}{\met{\green{s}}{\scall{c}{l_i}{\green{s}}^{i\in 1..n}}}
+    }\\
+    &\approx \obj{
+        \attr{l_i}{\met{\green{s}}{\iesimo{b}}}
+    }
+\end{align*}
+
+\begin{example*}
+Clase Contador
+
+\begin{align*}
+    \oname{Contador} \eqdef \obj{
+        \attr{new&}{
+            \sabs{z}{[\
+                \begin{aligned}[t]
+                    \attr{v&}{\met{s}{\scall{z}{v}{s}}},\\
+                    \attr{inc&}{\met{s}{\scall{z}{inc}{s}}},\\
+                    \attr{get&}{\met{s}{\scall{z}{get}{s}}}\ ],
+                \end{aligned}
+            }
+        }\\
+        \attr{v&}{\sabs{s}{0}},\\
+        \attr{inc&}{\sabs{s}{\assign{\sel{s}{v}}{\sel{s}{v} + 1}}},\\
+        \attr{get&}{\sabs{s}{\sel{s}{v}}}
+    }
+\end{align*}
+\end{example*}
+
+\subsubsection{Herencia}
+
+Si tenemos una clase
+
+\begin{align*}
+    \oname{c} \eqdef \obj{
+        \attr{new&}{
+            \sabs{\select{z}}{\obj{
+                \attr{l_i}{\met{s}{
+                    \scall{\select{z}}{l_i}{s}^{i\in 1..n}
+                }}
+            }}
+        },\\
+        \attr{l_i&}{
+            \sabs{s}{\iesimo{b}}
+        }
+    }
+\end{align*}
+
+Queremos definir $\oname{c}'$ como subclase de \oname{c} que agregue los
+pre-métodos $\sabs{s}{b_k^{k\in n+1..n+m}}$. Alcanza con agregar los métodos
+nuevos, y para los viejos referenciar a la superclase.
+
+\begin{align*}
+    \oname{c} \eqdef \obj{
+        \attr{new&}{
+            \sabs{\select{z}}{\obj{
+                \attr{l_i}{\met{s}{
+                    \scall{\select{z}}{l_i}{s}^{i\in 1..n\changed{+m}}
+                }}
+            }}
+        },\\
+        \attr{l_j&}{
+            \sel{c}{l_j^{j\in 1..n}}
+        },\\
+        \attr{l_k&}{
+            \sabs{s}{b_k^{k\in n+1..n+m}}
+        }
+    }
+\end{align*}
+
+también si quisiéramos podríamos redefinir pre-métodos. En vez de delegar a la
+superclase, los definimos y ya.
 
 \end{document}
 
