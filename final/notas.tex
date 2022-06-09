@@ -197,8 +197,8 @@
 \newcommand{\ederiv}[2]{\trfrac{#1}{#2}} % empty deriv
 
 % Para indicar que algo se conv en valor
-\newcommand{\changed}[1]{\textcolor{red}{#1}}
-\newcommand{\select}[1]{\textcolor{blue}{#1}}
+\newcommand{\changed}[1]{\textcolor{Red}{#1}}
+\newcommand{\select}[1]{\textcolor{Blue}{#1}}
 \newcommand{\green}[1]{\textcolor{OliveGreen}{#1}}
 
 \newcommand{\evalsto}{\leadsto}
@@ -237,9 +237,6 @@
 \newcommand{\asimp}[1]{\mapsto^{#1}}
 
 \newcommand{\mgu}[2]{\text{MGU}(\{ \unify{#1}{#2} \})}
-
-% Resolución
-\newcommand{\resol}[2]{\frac{#1}{#2}}
 
 % Subtipado
 \newcommand{\subt}[2]{#1 <: #2}
@@ -4495,6 +4492,595 @@ nuevos, y para los viejos referenciar a la superclase.
 
 también si quisiéramos podríamos redefinir pre-métodos. En vez de delegar a la
 superclase, los definimos y ya.
+
+\chapter{Paradigma lógico}
+
+\begin{nota}
+    Hasta ahora, vimos
+
+    \begin{itemize}
+        \item \textbf{Imperativo}: tenemos un estado compuesto por variables que
+        se va modificando con las instrucciones, al final determinando un estado
+        final.
+        \item \textbf{Funcional}: tenemos expresiones que se van reduciendo
+        hasta una forma que si todo sale bien es un valor
+        \item \textbf{Objetos}: objetos como una forma de modelar la realidad,
+        que colaboran mediante mensajes. Los métodos se implementan de forma
+        imperativa, pero no es lo fundamental del paradigma. Eso es la
+        colaboración mediante mensajes.
+    \end{itemize}
+\end{nota}
+
+Se basa en el uso de la lógica como forma de programar. En vez de pensar en un
+algoritmo dado un problema, nos mantenemos en la misma "esfera". En vez de
+programar un problema, quedarnos en el \textit{qué}.
+
+Vamos a especificar \textbf{hechos} y \textbf{reglas de inferencia} y un
+\textbf{goal} (objetivo) a probar. Un motor de inferencia trata de probar que el
+goal es consecuencia de los hechos y reglas.
+
+Es \textbf{declarativo}: se especifican hechos, reglas y goals sin indicar
+\textit{cómo} se obtiene el último a partir de los primeros.
+
+\section{Prolog}
+
+Vamos a usar \textbf{Prolog}:
+
+\begin{itemize}
+    \item Los programas se escriben en un subconjunto de la logica de primer
+    orden (cláusulas de Horn)
+    \item El mecanismo teórico en el que se basa es el \textbf{método de
+    resolución} (forma de dada una fórmula ver si es SAT o UNSAT)
+    \item Para motivarlo, primero vamos a ver como es resolución en lógica
+    proposicional
+\end{itemize}
+
+\begin{example*} Ejemplo de programa de prolog
+    
+    \begin{minted}{prolog}
+    % Hechos
+    habla(ale, ruso).
+    habla(juan, ingles).
+    habla(maria, ruso).
+    habla(maria, ingles).
+
+    % Reglas de inferencia
+    seComunicaCon(X, Y) :- habla(X, L), habla(Y, L), X \= Y.
+
+    % Ejemplo de goal
+    seComunicaCon(X, ale)
+    % X = maria
+    seComunicaCon(X, Y)
+    % X = maria, Y = juan y le podemos pedir más
+    \end{minted}
+
+    Depende de como instancie un goal, puede funcionar distinto
+\end{example*}
+
+% sintaxis
+\newcommand{\no}[1]{\neg #1}
+\newcommand{\y}[2]{#1 \wedge #2}\
+\newcommand{\por}[2]{#1 \vee #2}
+\newcommand{\impl}[2]{#1 \supset #2}
+\newcommand{\sii}[2]{#1 \iff #2}
+
+\newcommand{\propVars}{\mathcal{V}}
+
+% semántica
+\newcommand{\sat}[2]{#1 \models #2}
+\newcommand{\nsat}[2]{#1 \not\models #2}
+
+% resolución
+\newcommand{\set}[1]{\{ #1 \}} % para fnc
+\newcommand{\emptyCl}{\square} % clausula vacía
+\newcommand{\opuesto}[1]{\overline{#1}}
+\newcommand{\resol}[2]{\trfrac{#1}{#2}}
+
+
+\section{Resolución para Lógica Proposicional}
+
+\subsection{Lógica proposicional}
+
+\subsubsection{Sintaxis}
+
+Dado un conjunto $\propVars$ de \textbf{variables proposicionales}, podemos
+definir inductivamente al conjunto de \textbf{fórmulas proposicionales} (o
+\textbf{proposiciones}) \textbf{Prop} de la siguiente manera,
+
+\begin{enumerate}
+    \item Una variable proposicional $P_0, P_1, \dots$ es una proposición
+    \item Si A, B son proposiciones, entonces también lo son
+    \begin{itemize}
+        \item $\no{A}$ (negación)
+        \item $\y{A}{B}$ (conjunción)
+        \item $\por{A}{B}$ (disyunción)
+        \item $\impl{A}{B}$ (implicación)
+        \item $\sii{A}{B}$
+    \end{itemize}
+
+\end{enumerate}
+\begin{example*}
+    Ejemplos de fórmulas: 
+    $\por{A}{\no{B}}, \impl{\y{A}{B}}{\por{A}{B}}$
+\end{example*}
+
+\subsubsection{Semántica}
+
+Una \textbf{valuación} es una función $v: \tfunc{\propVars}{\{ T, F \}}$ que
+asigna valores de verdad a las variables proposicionales. \textbf{Satisface} una
+proposición $A$ si $\sat{v}{A}$ donde,
+
+\begin{alignat*}{2}
+    \sat{v}{P} & \text{ sii } && v(P) = T\\
+    \sat{v}{\no{A}} & \text{ sii }&& \nsat{v}{A} \text{ (i.e no $\sat{v}{A}$)}\\
+    \sat{v}{\por{A}{B}} & \text{ sii }&& \sat{v}{A} \text{ o } \sat{v}{B}\\
+    \sat{v}{\y{A}{B}} & \text{ sii }&& \sat{v}{A} \text{ y } \sat{v}{B}\\
+    \sat{v}{\impl{A}{B}} &\text{ sii }&& \nsat{v}{A} \text{ o } \sat{v}{B}\\
+    \sat{v}{\sii{A}{B}} & \text{ sii }&& (\sat{v}{A} \text{ sii } \sat{v}{B})
+\end{alignat*}
+
+\subsubsection{Tautologías y satisfacibilidad}
+
+Una proposición $A$ es
+
+\begin{itemize}
+    \item una \textbf{tautología} si $\sat{v}{A}$ para toda valuación $v$ 
+    (ej: $\por{P}{\no{P}}$)
+    \item \textbf{satisfacible} si existe una valuación $v$ tal que $\sat{v}{A}$
+    \item \textbf{insatisfacible} si no es satisfacible
+\end{itemize}
+
+Se puede extender a un conjunto. Un conjunto de proposiciones $S$ es 
+
+\begin{itemize}
+    \item \textbf{satisfacible} si existe una valuación $v$ tal que para todo $A
+    \in S$, $\sat{v}{A}$. (otra forma de verlo: hace verdadera a la conjunción
+    de todas)
+    \item \textbf{insatisfacible} si no es satisfacible
+\end{itemize}
+
+\begin{example*}
+    Ejemplos de tautologías
+    \begin{itemize}
+        \item $\impl{A}{A}$
+        \item $\impl{\no{\no{A}}}{A}$
+        \item $\sii{(\impl{A}{B})}{(\impl{\no{B}}{\no{A}})}$ (contrarecíproco)
+    \end{itemize}
+    
+\end{example*}
+
+\begin{example*} Ejemplos de proposiciones insatisfacible
+    \begin{itemize}
+        \item $\y{(\por{\no{A}}{B})}{\y{(\por{\no{A}}{\no{B}})}{A}}$
+        \item \(
+            \y
+                {(\impl{A}{B})}
+                {\y
+                {A}
+                {\no{B}}
+                }
+        \)
+    \end{itemize}
+\end{example*}
+
+\begin{nota}
+    Una forma de probar tautologías es con una tabla de verdad. Sin importar los
+    valores de las variables proposicionales, tiene que dar verdadero. Para
+    probar que algo es insat, lo mismo pero viendo que todo da falso.
+\end{nota}
+
+\begin{theorem}\label{teo:taut-sii-insat}
+    Una proposición $A$ es una tautología sii $\no{A}$ es insatisfacible.
+\end{theorem}
+\begin{proof}[Dem.] Por la ida y la vuelta
+    \begin{itemize}
+        \item[$\Rightarrow$)] Si $A$ es taut. para toda valuación $v$,
+        $\sat{v}{A}$. Entonces $\nsat{v}{\no{A}}$.
+        \item[$\Leftarrow$)] Si $\no{A}$ es insatisfacible, para toda valuación
+        $v$ $\nsat{v}{\no{A}}$. Luego $\sat{v}{A}$.
+    \end{itemize}
+\end{proof}
+
+\begin{nota}
+Esto sugiere un método indirecto para probar que una prop $A$ es una
+tautología, probando que $\no{A}$ es insatisfacible.
+
+Suele ser más fácil refutar que probar. Entonces si queremos probar $P$,
+refutamos $\no{P}$. Esto entonces va a ser útil porque a los mecanismos de
+resolución les va a ser más fácil refutar.
+\end{nota}
+
+\subsection{Resolución}
+
+\begin{definition*}[Principio de demostracion por \textbf{refutación}]
+    Vamos a probar que A es \textbf{válido} mostrando que $\no{A}$ es \textbf{insatisfacible}.
+\end{definition*}
+
+Hay varias técnicas de demostración por refutación
+
+\begin{itemize}
+    \item Tableaux semántico (1960)
+    \item Procedimiento de Davis-Putnam (1960)
+    \item \textbf{Resolución} (1965) (nos vamos a enfocar en este)
+\end{itemize}
+
+El método de resolución fue introducido por Alan Robinson en 1965, es simple de
+implementar, y se usa mucho en el ámbito de demostración automática de teoremas.
+Tiene una única regla de inferencia: \textbf{regla de resolución}. Y si bien no
+es imprescindible, por conveniencia vamos a asumir que las fórmulas están en
+\textbf{forma normal conjuntiva} (FNC).
+
+\subsubsection{Forma normal conjuntiva (FNC)}
+
+Un \textbf{literal} es una variable proposicional $P$ o su negación $\no{P}$.
+Una proposición $A$ está en \textbf{FNC} si es una conjunción
+
+\[
+    C_1 \wedge \dots \wedge C_n
+\]
+
+donde cada $C_i$ (llamado \textbf{cláusula}) es una disyunción
+
+\[
+    B_{i1} \vee \dots \vee B_{in_i}
+\]
+
+y cada $B_{ij}$ es un literal. Una FNC es entonces una ``conjunción de
+disyunciones de literales''
+
+\begin{example*}Ejemplos de FNC
+    \begin{itemize}
+        \item $\y{(\por{P}{Q})}{(\por{P}{\no{Q}})}$ está en FNC
+        \item $\y{(\por{P}{Q})}{(\por{P}{\no{\no{Q}}})}$ no está en FNC que
+        tiene un doble neg en $C_2$.
+        \item $\por{(\y{P}{Q})}{P}$ no está en FNC.
+    \end{itemize}
+\end{example*}
+
+\begin{theorem}
+    Para toda proposición $A$ puede hallarse una proposición $A'$ en FNC que es
+    lógicamente equivalente para $A$.
+\end{theorem}
+
+\begin{nota}
+    Decimos que $A$ es lógicamente equivalente a $B$ sii $\sii{A}{B}$ es una
+    tautología.
+\end{nota}
+
+\subsubsection{Notación conjuntista de FNC}
+
+Tomando en cuenta que tanto el $\vee$ como $\wedge$,
+
+\begin{itemize}
+    \item son conmutativos ($\sii{(\por{A}{B})}{(\por{B}{A})}$)
+    \item son asociativos
+    ($\sii{(\por{(\por{A}{B})}{C})}{(\por{A}{(\por{B}{C})})}$)
+    \item son idempotentes ($\sii{(\por{A}{A})}{A}$)
+\end{itemize}
+
+podemos asumir que 
+
+\begin{itemize}
+    \item Cada cláusula $C_i$ es \textbf{distinta} (si fueran iguales, por
+    idempotencia las podría juntar).
+    \item Cada cláusula puede verse como un conjunto de literales distintos.
+\end{itemize}
+
+Por lo tanto podemos notar una FNC como
+\[
+    \set{C_1, \dots, C_n}
+\]
+donde cada $C_i$ es un conjunto de literales
+\[
+    \set{B_{i1}, \dots, B_{in_i}}
+\]
+
+\begin{example*}
+    La FNC $\y{(\por{P}{Q})}{(\por{P}{\no{Q}})}$ se nota como
+    \[
+        \set{
+            \set{P, Q},
+            \set{P, \no{Q}}
+        }
+    \]
+\end{example*}
+
+\subsubsection{Principio fundamental del método de resolución}\label{sec:logico-lpo-resol-ppio-fundamental}
+
+La resolución se basa en el hecho de que la siguiente proposición es una
+\textbf{tautología},
+
+\[
+    \sii
+    {
+        \y{(\por{A}{P})}{(\por{B}{\no{P}})}
+    }
+    {
+        \y
+        {(\por{A}{P})}
+        {
+            \y
+            {(\por{B}{\no{P}})}
+            {(\por{A}{B})}
+        }
+    }
+\]
+
+\textit{Intuitivamente, si vale $P$ entonces no puede valer $\no{P}$, por lo que
+tiene que valer B valga o no A, y lo mismo al revés}
+
+Por lo tanto, el conjunto de cláusulas
+\[
+    \set{
+        C_1, \dots, C_m,
+        \set{A, P},
+        \set{B, \no{P}}
+    }
+\]
+es \textbf{lógicamente equivalente} a
+\[
+    \set{
+        C_1, \dots, C_m,
+        \set{A, P},
+        \set{B, \no{P}},
+        \select{\set{A, B}}
+    }
+\]
+
+y entonces el primero va a ser \textbf{insatisfacible} sii el segundo lo es.
+
+La cláusula $\set{A, B}$ se llama \textbf{resolvente} de las cláusulas $\set{A,
+P}$ y $\set{B, \no{P}}$.
+
+El resolvente de las cláusulas $\set{P}$ y $\set{\no{P}}$ es la \textbf{cláusula
+vacía} (porque es insatisfacible) y se anota $\emptyCl$. El vacío significa
+\textit{falso}, como era un y de todo, podemos concluir que es insatisfacible.
+
+\subsubsection{Regla de resolución}
+
+\begin{definition*}[Opuesto]
+    Dado un literal $L$, el \textbf{opuesto} de $L$ $\opuesto{L}$ se define como
+    \begin{itemize}
+        \item $\no{P}$ si $L = P$
+        \item $P$ si $L = \no{P}$
+    \end{itemize}
+
+    \begin{nota}
+        Tenemos que definir esto para poder devolver la negación de un literal
+        sin agregarle símbolos.
+    \end{nota}
+\end{definition*}
+
+\begin{definition*}[Resolvente]
+    Dadas dos cláusulas $C_1, C_2$ una cláusula C se dice \textbf{resolvente de
+    $\bm{C_1}$ y $\bm{C_2}$} sii para algún literal $L$, $L \in C_1, \opuesto{L}
+    \in C_2$ y
+
+    \[
+        C = (C_1 - \set{L}) \cup (C_2 - \set{\opuesto{L}})
+    \]
+
+    \begin{nota}
+        Esto es lo de antes pero escrito más formal.
+    \end{nota}
+
+    \begin{example*} Ejemplos
+        \begin{itemize}
+            \item Las cláusulas $\set{A, B}$ y $\set{\no{A}, \no{B}}$ tienen dos
+            resolventes: $\set{A, \no{A}}$ y $\set{B, \no{B}}$.
+            \item Las cláusulas $\set{P}$ y $\set{\no{P}}$ tienen a la cláusula
+            vacía $\emptyCl$ como resolvente.
+        \end{itemize}
+    \end{example*}
+\end{definition*}
+
+\begin{definition*}[Regla de resolución]
+    En base a lo anterior podemos definir la \textbf{regla de resolución} como
+    sigue,
+    \[
+        \resol
+        {
+            \set{A_1, \dots, A_m, \select{Q}}
+            \quad
+            \set{B_1, \dots, B_n, \select{\no{Q}}}
+        }
+        {
+            \changed{
+                \set{A_1, \dots, A_m, B_1, \dots, B_n}
+            }
+        }
+    \]
+\end{definition*}
+\begin{example*} El resultado de aplicar la regla de resolución a
+    \[
+        \set{
+            \set{P, \select{Q}},
+            \set{P, \select{\no{Q}}},
+            \set{\no{P}, Q},
+            \set{\no{P}, \no{Q}}
+        }
+    \]
+    es
+    \[
+        \set{
+            \set{P, Q},
+            \set{P, \no{Q}},
+            \set{\no{P}, Q},
+            \set{\no{P}, \no{Q}},
+            \changed{\set{P}}
+        }
+    \]
+\end{example*}
+
+\subsubsection{Método de resolución}
+
+El proceso de agregar a un conjunto $S$ el resolvente $C$ de dos cláusulas $C_1,
+C_2 \in S$ (aplicando la regla de resolución a S) se llama \textbf{paso de
+resolución}. (asumimos $C \notin S$)
+
+\begin{nota}
+    Recordamos que los pasos de resolución preservan la insatisfacibilidad,
+    \[
+        S \text{ es insatisfacible}
+        \iff
+        S \cup \set{C} \text{ es insatisfacible}
+    \]
+    ya que eran lógicamente equivalentes, como vimos en \fullref{sec:logico-lpo-resol-ppio-fundamental}
+\end{nota}
+
+Vamos a aplicar el metodo para obtener una \textbf{refutación}. Un conjunto de
+cláusulas se llama una refutación si contiene la cláusula vacía ($\emptyCl$).
+
+De esa forma, el método de resolución trata de constuir una secuencia de
+conjuntos de cláusulas obtenidas usando pasos de resolución hasta llegar a una
+\textbf{refutación}
+\[
+    S_1 \Rightarrow S_2 \Rightarrow \dots S_{n-1} \Rightarrow S_n \ni \emptyCl
+\]
+en este caso, sabemos que el \textit{conjunto inicial} de cláusulas es
+insatisfacible, dado que cada paso de resolución preserva la insatisfacibilidad
+y el último conjunto de cláusulas es insatisfacible.
+
+\subsubsection{Ejemplos}
+
+\begin{example*}
+    \(\set{
+        \set{P, Q},
+        \set{P, \no{Q}},
+        \set{\no{P}, Q},
+        \set{\no{P}, \no{Q}}
+    }\) es insatisfacible.
+
+    \begin{enumerate}
+        \item \(\set{
+            \select{\set{P, Q}},
+            \select{\set{P, \no{Q}}},
+            \set{\no{P}, Q},
+            \set{\no{P}, \no{Q}}
+        }\)
+        \item \(\set{
+            \set{P, Q},
+            \set{P, \no{Q}},
+            \select{\set{\no{P}, Q}},
+            \select{\set{\no{P}, \no{Q}}},
+            \set{P}
+        }\)
+        \item \(\set{
+            \set{P, Q},
+            \set{P, \no{Q}},
+            \set{\no{P}, Q},
+            \set{\no{P}, \no{Q}},
+            \select{\set{P}},
+            \select{\set{\no{P}}}
+        }\)
+        \item \(\set{
+            \set{P, Q},
+            \set{P, \no{Q}},
+            \set{\no{P}, Q},
+            \set{\no{P}, \no{Q}},
+            \set{P},
+            \set{\no{P}},
+            \changed{\emptyCl}
+        }\)
+    \end{enumerate}
+\end{example*}
+
+\begin{example*}
+\(\set{
+    \set{A, B, \no{C}},
+    \set{A, B, C},
+    \set{A, \no{B}},
+    \set{\no{A}}
+}\) es insatisfacible
+\begin{enumerate}
+    \item \(\set{
+        \select{\set{A, B, \no{C}}},
+        \select{\set{A, B, C}},
+        \set{A, \no{B}},
+        \set{\no{A}}
+    }\)
+    \item \(\set{
+        \set{A, B, \no{C}},
+        \set{A, B, C},
+        \select{\set{A, \no{B}}},
+        \set{\no{A}},
+        \select{\set{A, B}}
+    }\)
+    \item \(\set{
+        \set{A, B, \no{C}},
+        \set{A, B, C},
+        \set{A, \no{B}},
+        \select{\set{\no{A}}},
+        \set{A, B},
+        \select{\set{A}}
+    }\)
+    \item \(\set{
+        \set{A, B, \no{C}},
+        \set{A, B, C},
+        \set{A, \no{B}},
+        \set{\no{A}},
+        \set{A, B},
+        \set{A},
+        \changed{\emptyCl}
+    }\)
+\end{enumerate}
+\end{example*}
+
+\subsubsection{Formulas satisfacibles}
+
+Queremos mostrar que $S = \set{\set{A, B, C}, \set{A}, \set{B}}$ es
+insatisfacible, pero no podemos aplicar ningún paso de resolución a $S$ porque
+no hay negaciones. Por lo tanto, no puede llegarse a una refutación a partir de
+$S$. En lógica proposicional, estamos seguros entonces que $S$ debe ser
+satisfacible. Efectivamente, podemos tomar por ej.
+$v(A) = v(B) = \text{\textbf{T}}$.
+
+\subsubsection{Terminación}
+
+La aplicación reiterada de la regla de resolución \textbf{siempre termina}
+(suponiendo que el resolvente que se agrega es nuevo). Ya que,
+
+\begin{enumerate}
+    \item El resolvente (la cláusula nueva que se agrega) se forma con los
+    literales distintos que aparecen en el conjunto de las cláusulas de partida
+    $S$.
+    \item Hay una cantidad \textbf{finita} de literales en el conjunto de
+    cláusulas de partida $S$.
+\end{enumerate}
+
+En el peor de los casos, la regla de resolución podrá generar una nueva cláusula
+por cada combinación diferente de literales distintos de $S$. Pero sigue siendo
+finita y por lo tanto termina.
+
+\subsubsection{Corrección y completitud}
+
+\begin{theorem}
+    Dado un conjunto finito $S$ de cláusulas, $S$ es insatisfacible sii tiene
+    una refutación.
+\end{theorem}
+
+Este resultado establece la corrección y completitud del método de resolución.
+
+\begin{nota}
+    En LPO no es tan bueno. Si encuentra una refutación significa que es
+    insatisfacible (correcto) pero puede pasar que no la encontremos
+    (incompleto).
+\end{nota}
+
+\subsubsection{Resumen del algoritmo}
+
+Para probar que $A$ es una tautología hacemos lo siguiente,
+
+\begin{enumerate}
+    \item Calculamos la FNC de $\no{A}$
+    \item Aplicamos el método de resolución
+    \item \select{Si hallamos una refutación}, entonces $\no{A}$ es
+    insatisfacible y por lo tanto $A$ es una tautología. (Por Teo.
+    \ref{teo:taut-sii-insat})
+    \item \changed{Si no hallamos ninguna refutación}, entonces $\no{A}$ es
+    satisfacible y por lo tanto $A$ no es una tautologia. (Por negación de Teo.
+    \ref{teo:taut-sii-insat})
+\end{enumerate}
 
 \end{document}
 
