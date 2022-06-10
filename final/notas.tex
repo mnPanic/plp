@@ -4408,7 +4408,7 @@ un método que define (no es completo).
 
 \subsubsection{Clases}
 
-Una \textbf{clase} va a ser un \textit{trait} stateless (completo) que además
+Una \textbf{clase} va a ser un \textit{trait} (completo) que además
 provea un método $new$.
 
 \begin{align*}
@@ -4436,6 +4436,13 @@ Luego,
         \attr{l_i}{\met{\green{s}}{\iesimo{b}}}
     }
 \end{align*}
+
+\begin{nota}
+Observar que las clases son traits que \textbf{no} son \textit{stateless},
+ya que $new$ tiene $z$ que hace referencia a self. Si no fuera así, para
+instanciar una clase nueva habría que hacer $c.new(c)$ en vez de $c.new$, lo
+cual no tiene mucho sentido.
+\end{nota}
 
 \begin{example*}
 Clase Contador
@@ -4502,6 +4509,37 @@ nuevos, y para los viejos referenciar a la superclase.
 también si quisiéramos podríamos redefinir pre-métodos. En vez de delegar a la
 superclase, los definimos y ya.
 
+%%%%%%%
+
+% LP
+%% sintaxis
+\newcommand{\no}[1]{\neg #1}
+\newcommand{\y}[2]{#1 \wedge #2}\
+\newcommand{\por}[2]{#1 \vee #2}
+\newcommand{\impl}[2]{#1 \supset #2}
+\newcommand{\sii}[2]{#1 \iff #2}
+
+\newcommand{\propVars}{\mathcal{V}}
+
+%% semántica
+\newcommand{\sat}[2]{#1 \models #2}
+\newcommand{\nsat}[2]{#1 \not\models #2}
+
+%% resolución
+\newcommand{\set}[1]{\{ #1 \}} % para fnc
+\newcommand{\emptyCl}{\square} % clausula vacía
+\newcommand{\opuesto}[1]{\overline{#1}}
+\newcommand{\resol}[2]{\trfrac{#1}{#2}}
+
+% LPO
+\newcommand{\LPO}{\mathcal{L}}
+\newcommand{\paratodo}[2]{\forall #1 . #2}
+\newcommand{\existe}[2]{\exists #1 . #2}
+
+\newcommand{\lpoass}[3]{#1[#2 \gets #3]}
+\newcommand{\posat}[1]{s \models_M #1}
+\newcommand{\notposat}[1]{s \not\models_M #1}
+
 \chapter{Paradigma lógico}
 
 \begin{nota}
@@ -4531,8 +4569,6 @@ goal es consecuencia de los hechos y reglas.
 Es \textbf{declarativo}: se especifican hechos, reglas y goals sin indicar
 \textit{cómo} se obtiene el último a partir de los primeros.
 
-\section{Prolog}
-
 Vamos a usar \textbf{Prolog}:
 
 \begin{itemize}
@@ -4543,48 +4579,6 @@ Vamos a usar \textbf{Prolog}:
     \item Para motivarlo, primero vamos a ver como es resolución en lógica
     proposicional
 \end{itemize}
-
-\begin{example*} Ejemplo de programa de prolog
-    
-    \begin{minted}{prolog}
-    % Hechos
-    habla(ale, ruso).
-    habla(juan, ingles).
-    habla(maria, ruso).
-    habla(maria, ingles).
-
-    % Reglas de inferencia
-    seComunicaCon(X, Y) :- habla(X, L), habla(Y, L), X \= Y.
-
-    % Ejemplo de goal
-    seComunicaCon(X, ale)
-    % X = maria
-    seComunicaCon(X, Y)
-    % X = maria, Y = juan y le podemos pedir más
-    \end{minted}
-
-    Depende de como instancie un goal, puede funcionar distinto
-\end{example*}
-
-% sintaxis
-\newcommand{\no}[1]{\neg #1}
-\newcommand{\y}[2]{#1 \wedge #2}\
-\newcommand{\por}[2]{#1 \vee #2}
-\newcommand{\impl}[2]{#1 \supset #2}
-\newcommand{\sii}[2]{#1 \iff #2}
-
-\newcommand{\propVars}{\mathcal{V}}
-
-% semántica
-\newcommand{\sat}[2]{#1 \models #2}
-\newcommand{\nsat}[2]{#1 \not\models #2}
-
-% resolución
-\newcommand{\set}[1]{\{ #1 \}} % para fnc
-\newcommand{\emptyCl}{\square} % clausula vacía
-\newcommand{\opuesto}[1]{\overline{#1}}
-\newcommand{\resol}[2]{\trfrac{#1}{#2}}
-
 
 \section{Resolución para Lógica Proposicional}
 
@@ -5092,19 +5086,9 @@ Para probar que $A$ es una tautología hacemos lo siguiente,
     \ref{teo:taut-sii-insat})
 \end{enumerate}
 
-\newcommand{\LPO}{\mathcal{L}}
-\newcommand{\paratodo}[2]{\forall #1 . #2}
-\newcommand{\existe}[2]{\exists #1 . #2}
+\section{Lógica de Primer Orden}
 
-\newcommand{\lpoass}[3]{#1[#2 \gets #3]}
-\newcommand{\posat}[1]{s \models_M #1}
-\newcommand{\notposat}[1]{s \not\models_M #1}
-
-\section{Resolución SLD}
-
-\subsection{Lógica de Primer Orden}
-
-\subsubsection{Sintaxis}
+\subsection{Sintaxis}
 
 \begin{definition*}[Lenguaje de primer orden]
     Un lenguaje de primer orden (LPO) $\LPO$ consiste en
@@ -5219,7 +5203,7 @@ Para probar que $A$ es una tautología hacemos lo siguiente,
     \end{nota}
 \end{definition*}
 
-\subsubsection{Semántica}
+\subsection{Semántica}
 
 \begin{definition*}[Estructura]
     Dado un LPO $\LPO$ una \textbf{estructura para} $\LPO$, M, es un par M $=
@@ -5290,13 +5274,216 @@ Para probar que $A$ es una tautología hacemos lo siguiente,
 
 \begin{nota}
     Como consecuencia del Teoreoma de Church, el método de resolución de primer
-    orden no va a ser un \textbf{procedimiento efectivo}, sino que va a ser uno
-    de \textbf{semi decisión}:
+    orden no va a ser un \textbf{procedimiento efectivo} (como el de
+    proposicional), sino que va a ser uno de \textbf{semi decisión}:
     \begin{itemize}
         \item Si una sentencia es insatisfactible hallará una refutación,
         \item Pero si es satisfactible puede que no se detenga.
     \end{itemize}
 \end{nota}
+
+\section{Resolución en lógica de primer orden}
+
+Así como el lenguaje es más complejo, vamos a tener que hacer algunas cosas más
+para hacer lo mismo que en proposicional.
+
+\subsection{Forma clausal}
+
+Es una FNC en notación de conjuntos, análogo a la forma clausal de
+proposicional, pero requiere tener en cuenta los \textbf{cuantificadores}
+($\forall, \exists$). El pasaje consiste en 6 pasos de conversión,
+
+\begin{enumerate}
+    \item Escribir la fórmula en términos de $\vee, \wedge, \neg, \forall,
+    \exists$ (\textbf{elimilar implicación}).
+
+    Para esto se usa $(\impl{P}{A}) \iff (\por{\no{P}}{Q})$
+
+    \item Pasar a \textbf{forma normal negada}.
+    \item Pasar a \textbf{forma normal prenexa} (opcional).
+    \item Pasar a \textbf{forma normal de Skolem}. (\textit{esta es la única
+    picante})
+    \item Pasar matriz a \textbf{forma normal conjuntiva}.
+    \item \textbf{Distribuir} los cuantificadores universales.
+\end{enumerate}
+
+\subsubsection{Forma normal negada}
+
+Movemos las negaciones lo más adentro posible. El conjunto de fórmulas en
+\textbf{forma normal negada} (FNN) se define inductivamente como,
+
+\begin{enumerate}
+    \item Para cada fórmula atómica $A$, $A$ y $\no{A}$ están en FNN.
+    \item Si $A, B \in$ FNN, entonces $\por{A}{B}, \y{A}{B} \in$ FNN
+    \item Si $A\in$ FNN, entonces $\paratodo{x}{A}, \existe{x}{A} \in$ FNN
+\end{enumerate}
+
+\begin{proposition*}
+    Toda fórmula es \textbf{logicamente equivalente} a otra en FNN.
+\end{proposition*}
+\begin{proof}[Dem.]
+    Por inducción estructural usando las siguientes equivalencias,
+    \begin{alignat*}{2}
+        \no{\y{A}{B}} &\iff &&\por{\no{A}}{\no{B}}\\
+        \no{\por{A}{B}} &\iff &&\y{\no{A}}{\no{B}}\\
+        \no{\no{A}} &\iff &&A\\
+        \no{\paratodo{x}{A}} &\iff &&\existe{x}{\no{A}}\\
+        \no{\existe{x}{A}} &\iff &&\paratodo{x}{\no{A}}
+    \end{alignat*}
+\end{proof}
+
+\begin{example*} Ejemplos,
+    \begin{itemize}
+        \item \(
+            \no{\existe{x}{(
+                \impl{(
+                    \no{\por{P(x)}{\existe{y}{R(x, y)}}}
+                )}{(
+                    \por{\existe{z}{R(x, z)}}{P(a)}
+                )}
+            )}}
+        \) no está en FNN. Se transforma en,
+        \item \(
+            \paratodo{x}{(
+                \y
+                {(
+                    \por{P(x)}{\existe{y}{R(x, y)}}
+                )}
+                {(
+                    \por{\paratodo{z}\no{R(x, z)}}{\no{P(a)}}
+                )}
+            )}
+        \)
+    \end{itemize}
+\end{example*}
+
+\subsubsection{Forma normal prenexa}
+
+\begin{nota}
+    Escribir la fórmula de forma tal que luzca \textit{ordenada}, con
+    los cuantificadores al principio.
+\end{nota}
+
+Es una fórmula de la forma $Q_1 x_1 \dots Q_n x_n . B, n\geq 0$ donde
+
+\begin{itemize}
+    \item B no tiene cuantificadores (llamada \textbf{matriz})
+    \item $x_1, \dots, x_n$ son variables.
+    \item $Q_i \in \set{\forall, \exists}$ son cuantificadores.
+\end{itemize}
+
+\begin{proposition*}
+    Toda fórmula rectificada (con variables renombradas adecuadamente) es
+    lógicamente equivalente a una fórmula $B$ en forma prenexa.
+\end{proposition*}
+\begin{proof}
+    Por inducción estructural, asumiendo que $A$ está en FNN y usando,
+    \begin{alignat*}{2}
+        \y{(\paratodo{x}{A})}{B} &\iff \paratodo{x}{(\y{A}{B})}
+        \qquad
+        \por{(\paratodo{x}{A})}{B} &&\iff \paratodo{x}{(\por{A}{B})}\\
+        (\y{A}{\paratodo{x}{B}}) &\iff \paratodo{x}{(\y{A}{B})}
+        \qquad
+        (\por{A}{\paratodo{x}{B}}) &&\iff \paratodo{x}{(\por{A}{B})}\\
+        \y{(\existe{x}{A})}{B} &\iff \existe{x}{(\y{A}{B})}
+        \qquad
+        \por{(\existe{x}{A})}{B} &&\iff \existe{x}{(\por{A}{B})}\\
+        (\y{A}{\existe{x}{B}}) &\iff \existe{x}{(\y{A}{B})}
+        \qquad
+        (\por{A}{\existe{x}{B}}) &&\iff \existe{x}{(\por{A}{B})}
+    \end{alignat*}
+\end{proof}
+
+\begin{example*}Ejemplo
+    \begin{enumerate}
+        \item \(
+            \y{
+                \paratodo{x}
+                {
+                    \no{P(x)}
+                }
+            }{(
+                \por
+                {\select{\existe{y}{Q(y)}}}
+                {\paratodo{z}{P(z)}}
+            )}
+        \) (regla 3.b)
+        \item \(
+            \y
+            {
+                \paratodo{x}
+                {
+                    \no{P(x)}
+                }
+            }{(
+                \select{\existe{y}{(
+                    \por
+                    {Q(y)}
+                    {\paratodo{z}{P(z)}}
+                )}}
+            )}
+        \) (regla 4)
+        \item \(
+            \existe{y}{(
+                \y
+                {\paratodo{x}{\no{P(x)}}}
+                {(
+                    \por{Q(y)}{
+                        \select{\paratodo{z}{P(z)}}
+                    }
+                )}
+            )}
+        \) (regla 2.b)
+        \item \(
+            \existe{y}{(
+                \y
+                {\paratodo{x}{\no{P(x)}}}
+                {\select{\paratodo{z}{(\por{Q(y)}{P(z)})}}}
+            )}
+        \) (regla 2.a)
+        \item \(
+            \existe{y}{\paratodo{z}{(
+                \y{
+                    \select{\paratodo{x}{\no{P(x)}}}
+                }{(\por{Q(y)}{P(z)})}
+            )}}
+        \) (regla 1.a)
+        \item \(
+            \existe{y}{\paratodo{z}{\paratodo{x}{(
+                \y{
+                    \no{P(x)}
+                }{(\por{Q(y)}{P(z)})}
+            )}}}
+        \) está en forma prenexa.
+    \end{enumerate}
+\end{example*}
+
+\subsubsection{Forma normal de Skolem}
+
+\section{Prolog}
+
+\begin{example*} Ejemplo de programa de prolog
+    \begin{minted}{prolog}
+    % Hechos
+    habla(ale, ruso).
+    habla(juan, ingles).
+    habla(maria, ruso).
+    habla(maria, ingles).
+
+    % Reglas de inferencia
+    seComunicaCon(X, Y) :- habla(X, L), habla(Y, L), X \= Y.
+
+    % Ejemplo de goal
+    seComunicaCon(X, ale)
+    % X = maria
+    seComunicaCon(X, Y)
+    % X = maria, Y = juan y le podemos pedir más
+    \end{minted}
+
+    Depende de como instancie un goal, puede funcionar distinto
+
+\end{example*}
+
 
 \end{document}
 
