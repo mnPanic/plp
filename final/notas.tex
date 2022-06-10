@@ -4540,6 +4540,8 @@ superclase, los definimos y ya.
 \newcommand{\posat}[1]{s \models_M #1}
 \newcommand{\notposat}[1]{s \not\models_M #1}
 
+\newcommand{\sk}[1]{\text{\textbf{SK}}(#1)} % skolemizacion
+
 \chapter{Paradigma lógico}
 
 \begin{nota}
@@ -5460,6 +5462,111 @@ Es una fórmula de la forma $Q_1 x_1 \dots Q_n x_n . B, n\geq 0$ donde
 
 \subsubsection{Forma normal de Skolem}
 
+\begin{nota}
+    Hasta ahora tenemos una fórmula que
+    \begin{enumerate}
+        \item Está escrita en términos de $\wedge, \vee, \neg, \forall,
+        \exists$.
+        \item Si tiene negaciones, solo se aplican a átomos (\textbf{forma
+        normal negada})
+        \item (opcionalmente) Si tiene cuantificadores, se encuentran todos en
+        el prefijo (\textbf{forma normal prenexa})
+    \end{enumerate}
+
+    El proceso de pasar una fórmula a forma normal de Skolem se llama
+    \textbf{skolemización}, e involucra eliminar los cuantificadores
+    existenciales \textbf{sin} alterar \textit{satisfactibilidad}.
+
+    Es probable que no podamos mantener que sean lógicamente equivalentes, pero
+    que mantengan satisfactibilildad.
+
+    Cómo podemos cambiar los $\exists$ sin cambiar la satisfactibilidad? Vamos a
+    introducir \textit{testigos} para cada uno.
+
+    Todo cuantificador existencial se va a instanciar en una constante o
+    \textbf{función de skolem}. Estas se suelen conocer como
+    \textbf{parámetros}.
+
+    Por ejemplo, $\existe{x}{P(x)}$ se \textit{skolemiza} a $P(c)$ donde $c$ es
+    una nueva constante que se agrega al lenguaje de primer orden. Esto preserva
+    la satisfactibilidad, ya que si la primera era satisfactible, es porque
+    existía $x$ que cumpla $P(x)$. Por lo tanto, voy a poder armar un modelo $M$
+    que asigne en $c$ ese valor, y $P(c)$ también va a ser satisfactible.
+    
+    Gran frase de Diego: ``En términos teóricos hay una interpretación que lo
+    hace valer. Cuál es? Buscala, papá. Pero digo, existe.''
+\end{nota}
+
+La \textbf{skolemización} es un mecanismo para eliminar existenciales.
+
+\begin{proposition*}
+    Si $A'$ es el resultado de skolemizar $A$, entonces $A$ es satisfactible sii
+    $A'$ es satisfactible.
+
+    Como consecuencia, la skolemización preserva \textbf{insatisfactibilidad},
+    lo cuál será suficiente para aplicar el método de resolución.
+\end{proposition*}
+
+\textbf{No} podemos eliminar existenciales, usando skolemización, sin alterar la
+validez. Por ejemplo, $\existe{x}{(\impl{P(a)}{P(x)})}$ válida (satisfacible en
+toda estructura) mientras que $\impl{P(a)}{P(b)}$ no (podemos encontrar
+estructuras tal que $P(a)$ sea verdadero y $P(b)$ falso).
+
+\begin{definition*}[Skolemización]
+    Cada ocurrencia de una subfórmula $\existe{x}{B}$ en $A$ se reemplaza por
+    \[
+        \sustOne{B}{x}{f(x_1,\dots,x_n)}
+    \]
+    donde
+    \begin{itemize}
+        \item $\sustOne{\bullet}{\bullet}{\bullet}$ es la operación usual de
+        sustitución (sustituir las ocurrencias libres de una variable en una
+        expresión - fórmula o término - por otra expresión).
+        \item $f$ es un símbolo de función nuevo y $x_1, \dots, x_n$ son las
+        variables de las que depende $x$ en $B$.
+        \item Si $\existe{x}{B}$ forma parte de una fórmula mayor, $x$ solo
+        depende de las \textbf{variables libres} de $B$.
+        (por ej. en $\paratodo{z}{\paratodo{y}{\existe{x}{P(y, x)}}}$ la var $x$
+        depende de $y$
+    \end{itemize}
+    
+    \begin{nota}
+        Tengo que reemplazarlo por una función que depende de las variables
+        porque para cada combinación de variables voy a tener un testigo
+        distinto. Y reemplaza por una constante si no depende de ninguna
+        variable.
+    \end{nota}
+
+    Sea $A$ una sentencia rectificada en FNN (no hace falta en prenexa). Una
+    \textbf{forma normal de Skolem de A}, escrito $\sk{A}$, es una formula sin
+    existenciales se obtiene recursivamente de la siguiente manera:
+
+    Sea $A'$ cualquier subfórmula de $A$.
+
+    \begin{itemize}
+        \item Si $A'$ es una fórmula atómica o su negación, $\sk{A'} = A'$
+        \item Si $A'$ es de la forma $(B \star C)$ con $\star \in \set{\wedge,
+        \vee}$, entonces $\sk{A'} = (\sk{B} \star \sk{C})$.
+        \item Si $A'$ es de la forma $\paratodo{x}{B}$, entonces $\sk{A'} = \paratodo{x}{\sk{B}}$.
+        \item Si $A'$ es de la forma $\existe{x}{B}$ y $\set{x, y_1, \dots,
+        y_m}$  son las variables libres de $B$ (que se ligan en A, porque es
+        sentencia), entonces
+        \begin{enumerate}
+            \item Si $m > 0$, crear un nuevo \textbf{símbolo de función de
+            Skolem} $f_x$ de aridad $m$ y definir
+            \[
+                \sk{A'} = \sk{\sustOne{B}{x}{f_x(y_1, \dots, y_m)}}
+            \]
+            \item Si $m = 0$ crear una nueva \textbf{constante de Skolem} $c_x$
+            y
+            \[
+                \sk{A'} = \sk{\sustOne{B}{x}{c_x}}
+            \]
+
+            Como A está rectificada, cada $f_x$ y $c_x$ es única.
+        \end{enumerate}
+    \end{itemize}
+\end{definition*}
 \section{Prolog}
 
 \begin{example*} Ejemplo de programa de prolog
