@@ -123,7 +123,6 @@
 \newcommand{\ifte}[3]{\ \text{if } #1 \text{ then } #2 \text{ else } #3}
 \newcommand{\abs}[3]{\lambda #1 : #2 . #3}
 \newcommand{\app}[2]{#1 \ #2} % aplicación
-\newcommand{\sust}[2]{#1 \{ #2 \}}
 \newcommand{\sustOne}[3]{#1 \{ #2 \leftarrow #3 \}}
 
 \newcommand{\uabs}[2]{\lambda #1 . #2} % untyped
@@ -2475,7 +2474,7 @@ anotaciones de tipo, verifica
    \end{nota}
 \end{itemize}
 
-\subsection{Unificación}
+\subsection{Unificación}\label{sec:funcional:inferencia:unificacion}
 
 \begin{nota}
     Motivación
@@ -2496,7 +2495,7 @@ de tipos $\sigma, \tau$ son unificables (i.e $\tsust{\sigma} =
 \begin{itemize}
     \item El tipo $\tfunc{s}{t}$ es \textbf{compatible} o \textbf{unificable}
     con $\tfunc{Nat}{u}$? Si, porque podemos tomar la sustitución $S \eqdef \{
-    \sust{Nat}{s}, \sust{u}{t} \}$.
+    Nat / s, u / t \}$.
 
     Observar que
     \(
@@ -2511,6 +2510,7 @@ de tipos $\sigma, \tau$ son unificables (i.e $\tsust{\sigma} =
 \end{itemize}
 
 \subsubsection{Composición de sustituciones}
+\label{sec:func:inferencia:unif:comp}
 
 \begin{definition}[Composicion de sustituciones]
     La \textbf{composición} de $S$ y $T$, denotada $\comp{S}{T}$, es la sustitución que
@@ -2987,7 +2987,7 @@ sobre la estructura sintáctica del término.
             {\{ x: \tfunc{t}{r}, y: t\}}
             {\app{x}{y}}
             {r}\\
-        & &&\text{donde } S = \mgu{s}{\tfunc{t}{r}} = \{ \sust{\tfunc{t}{r}}{s}
+        & &&\text{donde } S = \mgu{s}{\tfunc{t}{r}} = \{ \tfunc{t}{r} / s
         \}\\
         \infer{\suc{\app{x}{y}}} &=\
         &&\tipa
@@ -4542,6 +4542,9 @@ superclase, los definimos y ya.
 
 \newcommand{\sk}[1]{\text{\textbf{SK}}(#1)} % skolemizacion
 
+%% resolución
+\newcommand{\sust}[2]{#1 \gets #2}
+
 \chapter{Paradigma lógico}
 
 \begin{nota}
@@ -4715,7 +4718,7 @@ Tiene una única regla de inferencia: \textbf{regla de resolución}. Y si bien n
 es imprescindible, por conveniencia vamos a asumir que las fórmulas están en
 \textbf{forma normal conjuntiva} (FNC).
 
-\subsubsection{Forma normal conjuntiva (FNC)}
+\subsubsection{Forma normal conjuntiva (FNC)}\label{sec:logico-prop-fnc}
 
 Un \textbf{literal} es una variable proposicional $P$ o su negación $\no{P}$.
 Una proposición $A$ está en \textbf{FNC} si es una conjunción
@@ -5309,6 +5312,9 @@ proposicional, pero requiere tener en cuenta los \textbf{cuantificadores}
     \item \textbf{Distribuir} los cuantificadores universales.
 \end{enumerate}
 
+Todos los pasos preservan \textbf{validez lógica}, salvo la skolemización que
+preserva la \textbf{satisfactibilidad}.
+
 \subsubsection{Forma normal negada}
 
 Movemos las negaciones lo más adentro posible. El conjunto de fórmulas en
@@ -5567,6 +5573,649 @@ estructuras tal que $P(a)$ sea verdadero y $P(b)$ falso).
         \end{enumerate}
     \end{itemize}
 \end{definition*}
+
+\newcommand{\redexiste}[2]{\changed{\exists}#1.#2}
+\newcommand{\blueexiste}[2]{\select{\exists}#1.#2}
+
+\begin{example*}Ejemplo de skolemización
+    La forma normal de Skolem de la siguiente fórmula
+    \[
+    \por{
+        \paratodo{x}{\Big(
+            \por{P(a)}{\redexiste{y}{(
+                \y{Q(y)}{\paratodo{z}{(
+                    \por{P(y, z)}{\redexiste{u}{Q(x, u)}}
+                )}}
+            )}}
+        \Big)}
+    }{\redexiste{w}{Q(w)}}
+    \]
+
+    es
+
+    \[
+    \por{
+        \paratodo{x}{\Big(
+            \por{P(a)}{
+                \y{Q(\select{f_y(x)})}{\paratodo{z}{(
+                    \por{P(\select{f_y(x)}, z)}{Q(x, \select{f_u(x)})}
+                )}}
+            }
+        \Big)}
+    }{Q(\select{c_w})}
+    \]
+\end{example*}
+
+El algoritmo de la skolemización no es determinístico, te dice que agarres una
+subfórmula cualquiera y apliques la regla. Entonces por ejemplo para la
+sentencia
+
+\[
+    \paratodo{x}{\redexiste{\changed{y}}{\blueexiste{\select{z}}{R(x, y, z)}}}
+\]
+
+\begin{enumerate}
+    \item Alternativa 1 (rojo y después azúl)
+    \begin{enumerate}
+        \item $\paratodo{x}{\redexiste{\changed{y}}{\blueexiste{\select{z}}{R(x, y, z)}}}$
+        \item $\paratodo{x}{\blueexiste{\select{z}}{R(x, f_y(x), z)}}$
+        \item $\paratodo{x}{R(x, f_y(x), f_z(x))}$
+    \end{enumerate}
+    \item Alternativa 2 (azul y después rojo)
+    \begin{enumerate}
+        \item $\paratodo{x}{\redexiste{\changed{y}}{\blueexiste{\select{z}}{R(x, y, z)}}}$
+        \item $\paratodo{x}{\redexiste{\changed{y}}{R(x, y, f_z(x, y))}}$
+        \item $\paratodo{x}{R(x, f_y(x), f_z(x, y))}$
+    \end{enumerate}
+\end{enumerate}
+
+es por esto que nos conviene skolemizar de afuera hacia adentro, para que en
+cada paso tengamos más variables ligadas y por lo tanto menos parámetros.
+
+\subsubsection{Forma clausal}\label{sec:logico:resol-lpo:clausal}
+\begin{nota}
+    Hasta ahora tenemos una fórmula que
+    \begin{enumerate}
+        \item Está escrita en términos de $\wedge, \vee, \neg, \forall,
+        \exists$.
+        \item Si tiene negaciones, solo se aplican a átomos (\textbf{forma
+        normal negada})
+        \item Si tiene cuantificadores, son universales (\textbf{forma normal de Skolem})
+        \item Si está en \textbf{forma normal prenexa} y tiene cuantificadores,
+        estos están en el prefijo
+    \end{enumerate}
+
+    Tiene la pinta
+    \[
+        \forall x_1 \dots \forall x_n . B
+    \]
+\end{nota}
+
+Dada la fórmula $\forall x_1 \dots \forall x_n . B$, vamos a
+
+\begin{enumerate}
+    \item Pasar $B$ (la \textbf{matriz}) a su forma normal conjuntiva $B'$ como
+    si fuera una fórmula proposicional (ver \fullref{sec:logico-prop-fnc}, es
+    una conjunción de disyunciones de literales)
+    \item Distribuir los cuantificadores sobre cada conjunción usando la fórmula
+    válida
+    \[
+        \paratodo{x}{(\y{A}{B})} \iff \y{\paratodo{x}{A}}{\paratodo{x}{B}}
+    \]
+    lo que nos da una conjunción de \textbf{cláusulas}
+    \[
+        \forall x_1\dots \forall x_n .C_1 \wedge \dots \wedge
+        \forall x_1\dots \forall x_n .C_m
+    \]
+    donde cada $C_i$ es una disyunción de literales.
+    \item Y lo podemos simplificar escribiendo $\set{C_1, \dots, C_m}$
+\end{enumerate}
+
+\begin{example*}
+    Ejemplo de pasaje a forma clausal (es la misma fórmula que antes pero en
+    FNP)
+
+    \[
+    \por
+    {
+        \paratodo{x}{
+            \paratodo{z}{(
+                \por{P(a)}{(
+                    \y{Q(g(x))}{(
+                        \por{P(g(x), z)}{Q(x, f(x))}
+                    )}
+                )}
+            )}
+        }
+    }{Q(c)}
+    \]
+
+    \begin{enumerate}
+        \item Pasamos a FNC
+        \[
+            \paratodo{x}{\paratodo{z}{\Big(
+                [P(a) \vee Q(g(x)) \vee Q(c)] \wedge
+                \left[P(a) \vee P(g(x)) \vee Q(x, f(x)) \vee Q(c)\right]
+            \Big)}}
+        \]
+        \item Distribuimos los cuantificadores
+        \begin{align*}
+            &\forall x. \forall z.[P(a) \vee Q(g(x)) \vee Q(c)]\ \wedge\\
+            &\forall x. \forall z.[P(a) \vee P(g(x)) \vee Q(x, f(x)) \vee Q(c)]
+        \end{align*}
+        \item Pasamos a notación de conjuntos
+        \begin{align*}
+            \Big\{
+            &\set{P(a), Q(g(x)), Q(c)}\\
+            &\set{P(a), P(g(x)), Q(x, f(x)), Q(c)}
+            \Big\}
+        \end{align*}
+    \end{enumerate}
+\end{example*}
+
+\subsection{Regla de resolución}
+
+\begin{nota}
+    En proposicional teníamos la siguiente regla de resolución,
+    \[
+        \resol
+        {
+            \set{A_1, \dots, A_m, \select{Q}}
+            \quad
+            \set{B_1, \dots, B_n, \select{\no{Q}}}
+        }
+        {
+            \changed{
+                \set{A_1, \dots, A_m, B_1, \dots, B_n}
+            }
+        }
+    \]
+
+    Pero la podemos usar \textbf{directamente} para LPO?
+
+    Por ejemplo, si tenemos la siguiente fórmula no satisfactible
+    \[
+        (\paratodo{x}{P(x)}) \vee \no{P(a)}
+    \]
+    su forma clausal es
+    \[
+        \set{\set{P(x)}, \set{\no{P(a)}}}
+    \]
+    no podemos aplicar la regla directamente porque $P(x) \neq P(a)$ (no son
+    idénticos), pero son \textbf{unificables}! Queremos encontrar una
+    sustitución de variables que haga que los términos queden iguales.
+
+    Ver \fullref{sec:funcional:inferencia:unificacion}.
+\end{nota}
+
+La regla de resolución para LPO va a ser,
+
+\[
+    \resol
+    {
+        \set{\select{B_1, \dots, B_k}, A_1, \dots, A_m}
+        \quad
+        \set{\select{\no{D_1}, \dots, \no{D_j}}, C_1, \dots, C_n}
+    }
+    {
+        \changed{
+            \sigma(\set{A_1, \dots, A_m, C_1, \dots, C_n})
+        }
+    }
+\]
+
+donde $\sigma$ es el MGU de
+\[
+\set{
+    \unify{B_1}{B_2}, \dots, \unify{B_{k-1}}{B_k},
+    \unify{B_k}{D_1}, \dots, \unify{D_{j-1}}{D_j}
+}
+\]
+
+Quiero que sean varios porque tal vez tengo varias instanciaciones del
+predicado, tengo $P(x), P(y), P(z)$ y quiero que todos unifiquen a lo mismo.
+
+\begin{itemize}
+    \item Vamos a asumir que las cláusulas
+    $\set{B_1, \dots, B_k, A_1, \dots, A_m}$ y $\set{\no{D_1}, \dots, \no{D_j},
+    C_1, \dots, C_n}$ no tienen variables en común (c.c. se renombran).
+    \item Obs que
+    $\sigma(B_1) = \dots = \sigma(B_k) = \sigma(D_1) = \dots = \sigma(D_j)$
+    \item La cláusula $\sigma(\set{A_1, \dots, A_m, C_1, \dots, C_n})$ se llama
+    \textbf{resolvente} (de $\set{B_1, \dots, B_k, A_1, \dots, A_m}$ y
+    $\set{\no{D_1}, \dots, \no{D_j}, C_1, \dots, C_n}$)
+\end{itemize}
+
+\subsection{Método de resolución}
+
+Las siguientes nociones son análogas al caso de proposicional: Cláusula vacía,
+paso de resolución y refutación.
+
+\begin{theorem*}[Herbrand-Skolem-Gödel]
+    Cada paso de resolución preserva la \textbf{satisfactibilidad}.
+\end{theorem*}
+
+\subsubsection{Ejemplo}
+
+Supongamos que dado $A$, obtenemos $\no{A}$, lo convertimos a forma clausal y
+nos queda $C_1 \wedge C_2 \wedge C_3$ donde
+\begin{enumerate}
+    \item $C_1 = \paratodo{z_1}{\paratodo{x}{(
+        \no{P(z_1, a)} \vee \no{P(z_1, )} \vee \no{P(x, z_1)}
+    )}}$
+    \item $C_2 = \paratodo{z_2}{(P(z_2, f(z_2)) \vee P(z_2, a))}$
+    \item $C_3 = \paratodo{z_3}{(P(f(z_3), z_3) \vee P(z_3, a))}$
+\end{enumerate}
+
+En notación conjuntista,
+\begin{align*}
+\Big\{
+    &\set{\no{P(z_1, a)}, \no{P(z_1, )}, \no{P(x, z_1)}},\\
+    &\set{P(z_2, f(z_2)), P(z_2, a)},\\
+    &\set{P(f(z_3), z_3), P(z_3, a)}
+\Big\}
+\end{align*}
+
+Hacemos la resolución,
+\begin{align*}
+    &C_1 = \set{\no{P(z_1, a)}, \no{P(z_1, )}, \no{P(x, z_1)}},\\
+    &C_2 = \set{P(z_2, f(z_2)), P(z_2, a)},\\
+    &C_3 = \set{P(f(z_3), z_3), P(z_3, a)}
+\end{align*}
+
+\begin{enumerate}
+    \item De $C_1$ y $C_2$ con
+    $\set{\sust{z_1}{a}, \sust{x}{a}, \sust{z_2}{a}}$
+
+    $C_4 = \select{\set{P(a, f(a))}}$
+    \item De $C_1$ y $C_3$ con 
+    $\set{\sust{z_1}{a}, \sust{x}{a}, \sust{z_3}{a}}$
+
+    $C_5 = \select{\set{P(f(a), a)}}$
+
+    \item De $C_1$ y $C_5$ con $\set{\sust{z_1}{f(a)}, \sust{x}{a}}$
+    
+    $C_6 = \select{\no{P(a, f(a))}}$
+
+    \item De $C_4$ y $C_6$: $\changed{\emptyCl}$
+\end{enumerate}
+
+\subsection{Diferencias con proposicional}
+
+\begin{itemize}
+    \item Proposicional
+    
+    \[
+        \resol
+        {
+            \set{A_1, \dots, A_m, \select{Q}}
+            \quad
+            \set{B_1, \dots, B_n, \select{\no{Q}}}
+        }
+        {
+            \changed{
+                \set{A_1, \dots, A_m, B_1, \dots, B_n}
+            }
+        }
+    \]
+
+    \item Primer orden
+    \[
+        \resol
+        {
+            \set{\select{B_1, \dots, B_k}, A_1, \dots, A_m}
+            \quad
+            \set{\select{\no{D_1}, \dots, \no{D_j}}, C_1, \dots, C_n}
+        }
+        {
+            \changed{
+                \sigma(\set{A_1, \dots, A_m, C_1, \dots, C_n})
+            }
+        }
+    \]
+    
+    donde $\sigma$ es el MGU de $\set{B_1, \dots, b_k, D_1, \dots, D_j}$
+\end{itemize}
+
+\subsubsection{Regla de resolución binaria}
+
+Pero podríamos tener en LPO algo parecido, en el que solo se unifique de a dos?
+
+\[
+    \resol
+    {
+        \set{\select{B}, A_1, \dots, A_m}
+        \quad
+        \set{\select{\no{D}}, C_1, \dots, C_n}
+    }
+    {
+        \changed{
+            \sigma(\set{A_1, \dots, A_m, C_1, \dots, C_n})
+        }
+    }
+\]
+
+donde $\sigma$ es el MGU de $\set{B, D}$.
+
+\textbf{No}, porque sería \textbf{incompleta}.
+
+\begin{example*}
+    Intentemos de refutar con la regla binaria
+    $\set{\set{P(x), P(y)}, \set{\no{P(v)}, \no{P(w)}}}$
+
+    \todo{Por qué no se puede? No aparece en el video :(}
+\end{example*}
+
+Una forma de arreglarlo es con una regla adicional de \textbf{factorización} que
+une los términos
+
+\[
+\resol
+    {\set{\select{B_1, \dots, B_k}, A_1, \dots A_m}}
+    {\changed{\sigma(\set{B_1, A_1, \dots, A_m})}}
+\]
+
+donde $\sigma$ es el MGU de $\set{B_1, \dots, B_k}$
+
+En el ejmplo anterior,
+\begin{enumerate}
+    \item $\set{
+        \set{P(x), P(y)},
+        \set{\no{P(v)}, \no{P(w)}}
+    }$
+    \item $\set{
+        \set{P(x), P(y)},
+        \set{\no{P(v)}, \no{P(w)}},
+        \select{\set{P(z)}}
+    }$ (fact.)
+    \item $\set{
+        \set{P(x), P(y)},
+        \set{\no{P(v)}, \no{P(w)}},
+        \set{P(z)},
+        \select{\set{\no{P(u)}}},
+    }$ (fact.)
+    \item $\set{
+        \set{P(x), P(y)},
+        \set{\no{P(v)}, \no{P(w)}},
+        \set{P(z)},
+        \set{\no{P(u)}},
+        \changed{\emptyCl}
+    }$ (resolución binaria)
+\end{enumerate}
+
+\section{Resolución SLD}
+
+\subsection{Resolución lineal}
+
+Hallar la resolución puede ser complicado, hay muchos órdenes posibles y es no
+determinístico. El espacio de búsqueda puede ser muy grande.
+
+Hay mucho \textbf{no determinismo}:
+\begin{itemize}
+    \item Qué cláusulas elegimos? \textbf{Relga de búsqueda}
+    \item Qué literales eliminamos? \textbf{Regla de selección}
+\end{itemize}
+
+Son necesarias restricciones (ambas reglas) para reducir el espacio de búsqueda
+y que sea útil en la práctica. Y es deseable que estas no renuncien a la
+\textbf{completitud} del método.
+
+Vamos a ver un método de resolución que cambia la estrategia de búsqueda.
+
+\begin{definition*}[Resolución lineal]
+    Decimos que una secuencia de pasos a partir de $S$ es \textbf{lineal} si es
+    de la forma
+
+    \begin{center}
+        \includegraphics[scale=0.25]{img/resol/lineal.png}
+    \end{center}
+
+    donde $C_0$ y cada $B_i$ es un elemento de $S$ (o algún $C_j$ con $j < i$)
+
+    En cada paso agarramos el último resolvente y lo intentamos de resolver
+    contra alguno del conjunto de cláusulas o alguno de los resolventes
+    anteriores.
+\end{definition*}
+
+\begin{example*}Ejemplo de resolución lineal
+    \begin{center}
+        \includegraphics[scale=0.25]{img/resol/lineal-ex.png}
+    \end{center}
+\end{example*}
+
+Características
+
+\begin{itemize}
+    \item En general \textbf{reduce} el espacio de búsqueda considerablemente
+    (restringimos que cláusulas podemos elegir)
+    \item Preserva \textbf{completitud} (si la fórmula es insatisfactible,
+    existe una resol lineal que llega a una refutación).
+    \item Pero sigue siendo muy \textbf{no determinístico}. El criterio de
+    búsqueda deja espacio para refinamientos y no se especificó ningún criterio
+    de selección.
+\end{itemize}
+
+\subsection{Cláusulas de Horn}
+
+\begin{nota}
+Es un mecanismo que nos va a dar mayor eficiencia en el proceso de producir
+refutaciones, sin perder completitud, pero usando \textit{subclases} de
+fórmulas. Una subclase es las \textbf{cláusulas de Horn}, que son disyunciones
+de literales que tienen \textbf{a lo sumo} un literal positivo.
+
+Las formas clausales (\fullref{sec:logico:resol-lpo:clausal}) tenían la
+siguiente pinta
+\[
+    \forall x_{11}\dots \forall x_{1m_1} .C_1 \wedge \dots \wedge
+    \forall x_{k1}\dots \forall x_{km_k} .C_k
+\]
+
+una conjunción de \textbf{cláusulas} $\forall x_1 \dots \forall x_m C$ donde cad
+$C$ es una disyunción de literales, y se escribían como $\set{C_1', \dots,
+C_k'}$ donde cada $C_i'$ es el conjunto de literales en $C_i$.
+\end{nota}
+
+\begin{definition*}[Cláusula de Horn]
+    Las \textbf{cláusulas de Horn} son de la forma
+    $\forall x_1, \dots \forall x_m C$ tal que la disyunción de literales $C$
+    tiene \textbf{a lo sumo} un literal positivo.
+
+    C puede tomar una de las formas,
+    \begin{itemize}
+        \item $\set{B, \no{A_1}, \dots, \no{A_n}}$ (cláusula de definición)
+        \item $\set{B}$ (verdades o hechos)
+        \item $\set{\no{A_1}, \dots, \no{A_n}}$ (clausula \textbf{goal},
+        objetivo o negativa)
+    \end{itemize}
+\end{definition*}
+
+\textbf{No} toda fórmula de primer orden puede expresarse como una cláusula de
+Horn, por ejemplo,
+
+\begin{itemize}
+    \item $\paratodo{x}{(P(x) \vee Q(x))}$ (tiene dos literales positivos)
+    \item \(
+    \impl
+    {
+        \paratodo{x}{P(x)}
+        \vee
+        \paratodo{x}{Q(x)}
+    }
+    {
+        \paratodo{x}{(P(x) \vee Q(x))}
+    }
+    \)
+\end{itemize}
+
+Sin embargo, es suficientemente expresivo como para representar programas en la
+visión de resolución como cómputo (lo vemos en Prolog).
+
+\subsubsection{Tipos de cláusulas}
+
+Una \textbf{cláusula de definición} (definite clause) es una de la forma
+$\forall x_1 \dots \forall x_m C$ tal que la disyunción de literales $C$
+tiene \textit{exactamente} un literal positivo.
+
+Y sea $S = P \cup \set{G}$ un conjunto de cláusulas de Horn (con nombres de
+vars disjuntos) tal que $P$ es un conjunto de cláusulas de definición y $G$
+una negativa, decimos que son las \textbf{cláusulas de entrada}.
+
+Donde,
+\begin{itemize}
+    \item $P$ se conoce como \textbf{el programa o base de conocimientos}, y
+    \item $G$ es el \textbf{goal}, \textbf{meta} o \textbf{cláusula
+    objetivo}
+\end{itemize}
+
+\subsection{Resolución SLD}
+
+\begin{nota}
+    S: Selectiva
+    L: Lineal
+    D: Definición
+    (Selective Linear Definite)
+\end{nota}
+
+Una secuencia de pasos de \textbf{resolución SLD} para $S$ es una secuencia
+\[
+\langle
+    N_0, N_1, \dots, N_p
+\rangle
+\]
+de \textbf{cláusulas negativas} que satisfacen dos condiciones,
+
+\begin{enumerate}
+    \item $N_0$ es el goal $G$
+    \item Para todo $N_i$ en la secuencia, $0 < i < p$, si $N_i$ es
+    \[
+        \set{
+            \no{A_1}, \dots, \no{A_{k-1}}, \no{A_k},
+            \no{A_{k+1}, \dots, \no{A_n}}
+        }
+    \]
+
+    entonces hay alguna \textbf{cláusula de definición} $C_i$ de la forma
+    $\set{A, \no{B_1}, \dots, \no{B_m}}$ en $P$ tal que $A_k$ y $A$ son
+    unificables con un MGU $\sigma$, y si
+    \begin{itemize}
+        \item $m = 0$ (i.e es una \textit{verdad}) entonces $N_{i+1}$ es
+        
+        \(
+            \sigma(\set{
+                \no{A_1}, \dots, \no{A_{k-1}},
+                \no{A_{k+1}, \dots \no{A_n}}
+            })
+        \)
+        \item $m > 0$ entonces $N_{i+1}$ es
+        
+        \(
+            \sigma(\set{
+                \no{A_1}, \dots, \no{A_{k-1}},
+                \no{B_1}, \dots, \no{B_m},
+                \no{A_{k+1}, \dots \no{A_n}}
+            })
+        \)
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Refutación SLD}
+
+y entonces una \textbf{refutación SLD} es una secuencia de pasos de resolución
+SLD $\langle N_0, \dots, N_p \rangle$ tal que $N_p = \changed{\emptyCl}$ (llega
+a una cláusula vacía)
+
+\begin{center}
+    \includegraphics[scale=0.25]{img/resol/refutacion-sld.png}
+\end{center}
+
+De esa forma,
+
+\begin{itemize}
+    \item En cada paso, se resuelven las cláusulas \(
+        \set{
+            \no{A_1}, \dots, \no{A_{k-1}}, \no{A_k},
+            \no{A_{k+1}, \dots, \no{A_n}}
+        }
+    \) (resolvente anterior) y $\set{A, \no{B_1}, \dots, \no{B_m}}$ (definición)
+
+    \item Los átomos $A_k$ y $A$ se unifican con un MGU $\sigma_i$
+    \item El literal $A_k$ se llama \textbf{átomo seleccionado} de $N_i$
+    \item Al final, tenemos la \textbf{sustitución respuesta}
+    \[
+        \sigma_p \circ \dots \circ \sigma_1
+    \]
+    (esta se usa en Prolog para extraer la salida del programa)
+\end{itemize}
+
+\subsubsection{Ejemplo}
+
+Consideremos las siguientes cláusulas de definición,
+
+\begin{itemize}
+    \item $C_1 = \set{add(U, 0, U)}$
+    \item $C_2 = \set{add(X, succ(Y), succ(Z)),\ \neg add(X, Y, Z)}$
+\end{itemize}
+
+y la cláusula goal
+\[
+    \set{\neg add(succ(0), V, succ(succ(0)))}
+\]
+
+queremos mostrar que el conjunto de estas cláusulas $\set{C_1, C_2, G}$ es
+insatisfactible.
+
+\begin{center}
+    \includegraphics[scale=0.25]{img/resol/resol-sld-ex.png}
+\end{center}
+
+Y 
+
+\begin{center}
+    \begin{tabular}{ lll }
+        \textbf{Cláusula goal}                      & \textbf{Cláusula de entrada} & \textbf{Sust} \\
+        $\set{\neg add(succ(0), V, succ(succ(0)))}$ & $C_2$                        &               \\
+        $\set{\neg add(succ(0), Y, succ(0))}$       & $C_1$                        & $\sigma_1$    \\
+        $\changed{\emptyCl}$                        &                              & $\sigma_2$
+    \end{tabular}
+\end{center}
+
+donde
+\begin{align*}
+    \sigma_1 &= \set{\sust{X}{succ(0)}, \sust{V}{succ(Y)}, \sust{Z}{succ(0)}}\\
+    \sigma_2 &= \set{\sust{U}{succ(0)}, \sust{Y}{0}}
+\end{align*}
+
+y la sustitución resultado es
+\begin{align*}
+    \comp{\sigma_2}{\sigma_1} =
+    \set{
+        &\sust{X}{succ(0)},\\
+        &\sust{V}{succ(0)},\\
+        &\sust{Z}{succ(0)},\\
+        &\sust{U}{succ(0)},\\
+        &\sust{Y}{0}
+    }
+\end{align*}
+
+\subsection{Corrección y completitud}
+
+\begin{itemize}
+    \item \textbf{Corrección}: Si un conjunto de cláusulas de Horn tiene una
+    refutación SLD, entonces es insatisfacible.
+
+    \item \textbf{Completitud}: Si un conjunto de cláusulas de Horn $P \cup
+    \set{G}$ como fue descrito, si es insatisfacible, existe una refutación SLD
+    cuya primera cláusula es G.
+\end{itemize}
+
+\begin{nota}
+    Si el algoritmo de resolución original era correcto, entonces este
+    también, ya que impone restricciones y se aplica sobre un subconjunto de
+    las fórmulas.
+
+    La completitud se preserva solamente para cláusulas de Horn.
+\end{nota}
+
 \section{Prolog}
 
 \begin{example*} Ejemplo de programa de prolog
@@ -5591,6 +6240,572 @@ estructuras tal que $P(a)$ sea verdadero y $P(b)$ falso).
 
 \end{example*}
 
+\subsection{Resolución SLD en Prolog}
+
+Prolog usa resolución SLD con las siguientes restricciones:
+
+\begin{itemize}
+    \item \textbf{Regla de búsqueda}: se seleccionan las cláusulas del programa
+    de arriba hacia abajo, en el orden que fueron introducidas.
+    \item \textbf{Regla de selección}: se selecciona el átomo de más a la
+    izquierda.
+\end{itemize}
+
+La suma de ambas se llama \textbf{estrategia}, y cada una determina un árbol de
+búsqueda o \textbf{árbol SLD} distinto.
+
+\begin{nota}
+    Sobre la regla de selección, nosotros tenemos un super goal que puede tener
+    muchos literales negados, y selecciona el que está más a la izquierda (nos
+    da determinismo). Esto permite que alteremos el orden el que aparecen las
+    cosas según como queremos que ejecute.
+\end{nota}
+
+\begin{example*}
+Ejemplo de resolución SLD en Prolog
+
+Cláusulas de definición:
+\begin{enumerate}
+    \item $\set{p(X, Z), \neg q(X, Y), \neg p(Y, Z)}$
+    \item $\set{p(X, X)}$
+    \item $\set{q(a, b)}$
+\end{enumerate}
+
+Cláusula goal: $\set{\neg p(X, b)}$
+
+El árbol de búsqueda seleccionando el átomo que está más a la izquierda es
+
+\begin{center}
+    \includegraphics[scale=0.3]{img/prolog/prolog-sld-left-ex.png}
+\end{center}
+\begin{enumerate}
+    \item Camino 1: 
+    \begin{itemize}
+        \item $\sigma_1 = \set{\sust{Z}{b}}$
+        \item $\sigma_2 = \set{\sust{X}{a}, \sust{Y}{b}}$
+        \item $\sigma_3 = \set{\sust{X}{b}}$
+    \end{itemize}
+    La sustitución final es
+    $\sigma_3 \circ \sigma_2 \circ \sigma_1 = \set{\sust{Z}{b}, \sust{X}{a},
+    \sust{y}{b}}$.
+
+    (tiene prioridad el $\sust{X}{a}$ por sobre el $\sust{X}{b}$ por como se
+    comporta la composición de sustituciones, ver
+    \fullref{sec:func:inferencia:unif:comp})
+
+    \item Camino 2: lleva directo a $\sigma_1 = \set{\sust{X}{b}}$.
+\end{enumerate}
+\end{example*}
+
+\subsubsection{Variando estrategia}
+
+Se podría variar la \textbf{regla de selección} para que elija el átomo de más a
+la derecha por ejemplo, lo que llevaría a un árbol SLD distinto.
+
+\begin{example*} Eligiendo el átomo de más a la derecha
+    \begin{center}
+        \includegraphics[scale=0.3]{img/prolog/prolog-sld-right-ex.png}
+    \end{center}
+
+    nos puede pasar que el árbol diverge, lo cual no quiere decir que no pueda
+    encontrar soluciones.
+\end{example*}
+
+También se podría variar la regla de búsqueda, en cuyo caso también podría
+variar el árbol SLD asociado. Por ejemplo, podría seleccionar las cláusulas de
+abajo hacia arriba en vez de arriba hacia abajo.
+
+La importancia de entender la estrategia que se usa (en Prolog) es que podemos
+estructurar nuestro programa para tener mejores árboles SLD (y que sea más
+eficiente).
+
+\subsection{Motivación de resolución SLD como cómputo}
+
+Vamos a explorar de qué manera la \textbf{resolución SLD} puede usarse para
+\textbf{computar}. Además vemos el rol de la \textbf{sustitución respuesta} como
+``resultado del cálculo''.
+
+Vamos a especificar con fórmulas un cómputo, hacer una pregunta y mediante
+resolución vamos a obtener una sustitución que es la respuesta.
+
+Recordando el ejemplo de la suma, que puede verse como una definición recursiva
+de la suma,
+
+\begin{itemize}
+    \item $C_1 = \set{add(U, 0, U)}$ 
+
+    ($U + 0 = U$)
+    \item $C_2 = \set{add(X, succ(Y), succ(Z)),\ \neg add(X, Y, Z)}$
+
+    (si $X+Y = Z$, entonces $X + succ(Y) = succ(Z)$)
+\end{itemize}
+
+Y queremos saber si, dada esa definición, ``Existe $V$ tal que $1 + V = 2$?''
+
+\[
+    \existe{V}{add(succ(0), V, succ(succ(0)))}
+\]
+
+Esto podemos plantearlo como la \textbf{validez} de la fórmula
+
+\[
+    \impl{C_1 \wedge C_2}{
+        \existe{V}{add(succ(0), V, succ(succ(0)))}
+    }
+\]
+
+(la definición de la suma implica que existe un valor tal que 1 + el da 2)
+
+es decir,
+
+\[
+    \impl
+    {
+        \ubrace{C_1 \wedge C_2}{\text{Define la suma}}
+    }
+    {
+        \ubrace{
+            \existe{V}{add(succ(0), V, succ(succ(0)))}
+        }{\text{Pide calcular } V}
+    } \text{ es válida}
+\]
+
+que es lo mismo que preguntarse por la \textbf{insatisfactibilidad} de la
+negación
+\begin{align*}
+    &\neg (\impl{C_1 \wedge C_2}{
+        \existe{V}{add(succ(0), V, succ(succ(0)))}
+    })\\
+    \iff &\neg (
+        \neg (C_1 \wedge C_2) \vee \existe{V}{add(succ(0), V, succ(succ(0)))}
+    )\\
+    \iff &C_1 \wedge C_2 \wedge \neg\existe{V}{add(succ(0), V, succ(succ(0)))}\\
+    \iff &C_1 \wedge C_2 \wedge
+        \paratodo{V}{\neg add(succ(0), V, succ(succ(0)))}
+\end{align*}
+Que son tres cláusulas, y lo podemos escribir como
+\begin{align*}
+    \Big\{
+        &\set{add(U, 0, U)},\\
+        &\set{add(X, succ(Y), succ(Z)), \neg add(X, Y, Z)},\\
+        &\set{\neg add(succ(0), V, succ(succ(0)))}
+    \Big\}
+\end{align*}
+
+y con ese conjunto de cláusulas disparamos la resolución SLD. Si tiene éxito,
+con la sustitución respuesta obtenemos un valor para el $V$ buscado. Es
+importante observar que no solo nos interesa saber que exista ese $V$, queremos
+una instancia del mismo.
+
+\subsection{Notación Prolog}
+
+\begin{nota}
+    La resolución SLD partía de un conjunto de cláusulas $S = P \cup \set{G}$
+    donde
+    
+    \begin{enumerate}
+        \item $P$ es un conjunto de cláusulas \textbf{definición}, cláusulas con
+        exactamente un literal positivo.
+        \begin{gather*}
+            \set{B, \neg A_1, \dots, \neg A_n}\\
+            \set{B}
+        \end{gather*}
+        \item $G$ es un \textbf{goal}, una cláusula negativa
+        \[
+            \set{\neg A_1, \dots, \neg A_n}
+        \]
+    \end{enumerate}
+\end{nota}
+
+Notar que
+\begin{align*}
+    B \vee \neg A_1 \vee \dots \vee \neg A_n
+    \iff &\neg(A_1 \wedge \dots \wedge A_n) \vee B\\
+    \iff &\impl{(A_1 \wedge \dots \wedge A_n)}{B}
+\end{align*}
+como consecuencia, las cláusulas en $P$ definen implicaciones o cosas que son
+verdaderas y se escriben
+\begin{itemize}
+    \item $B :- A_1, \dots, A_n.$ para
+    $\set{B, \neg A_1, \dots, \neg A_n}$ (\textbf{reglas})
+    \item $B.$ para $\set{B}$ (\textbf{hechos})
+\end{itemize}
+
+\subsection{Ejemplos}
+
+\subsubsection{Suma}
+
+El ejemplo de la suma en Prolog se escribiría como
+\begin{minted}{prolog}
+    add(U, 0, U).
+    add(X, succ(Y), succ(Z)) :- add(X, Y, Z).
+
+    % Ingresamos el goal
+    ?- add(succ(0), V, succ(succ(0)))
+
+    % La respuesta es
+    V = succ(0)
+\end{minted}
+
+\subsubsection{Familiares}
+
+\begin{minted}{prolog}
+    hijo(fred, sally).
+    hijo(tina, sally).
+    hijo(sally, john).
+    hijo(sally, diane).
+    hijo(sam, bill).
+    hermanos(A, B) :- hijo(P, A), hijo(P, B), A \= B.
+\end{minted}
+
+Si el goal es \texttt{hermanos(john, X)}, entonces la refutación SLD para $P
+\wedge \paratodo{X}{\neg hermanos(john, X)}$ nos va a dar la sustitución respuesta
+$\sigma = \set{\sust{X}{diane}}$
+
+Puede que la sustitución respuesta asigne valores a variables intermedias que
+surgieron en el proceso de búsqueda de una refuctación.
+
+Secuencia SLD:
+
+\begin{enumerate}
+    \item $\set{hijo(fred, sally)}$
+    \item $\set{hijo(tina, sally)}$
+    \item $\set{hijo(sally, john)}$
+    \item $\set{hijo(sally, diane)}$
+    \item $\set{hijo(sam, bill)}$
+    \item $\set{hermanos(A, B),\neg hijo(P, A),\neg hijo(P, B),\neg A \neq B}$
+    \item (goal) $\neg hermanos(john, X)$
+    \item (7 y 6)
+    $\set{\neg hijo(P, john),\neg hijo(P, B),\neg john \neq B}$
+    
+    $\sigma = \set{\sust{A}{john}, \sust{X}{B}}$
+    \item (8 y 3)
+    $\set{\neg hijo(sally, B), \neg john \neq B}$
+    
+    $\sigma = \set{\sust{P}{sally}}$
+    \item (9 y 4)
+    $\set{john = diane}$
+    
+    $\sigma = \set{\sust{B}{diane}}$
+    \item $\changed{\emptyCl}$
+    
+    \todo{Acá no estoy seguro de como es, pero supongo que como $john = diane$
+    es falso queda la cláusula vacía}
+\end{enumerate}
+
+la sustitución resultado es
+$\sigma = \set{
+    \sust{A}{john},
+    \select{\sust{X}{diane}},
+    \sust{P}{sally},
+    \sust{B}{diane}
+}$
+
+\subsection{Corrección y completitud}
+
+\textbf{Corrección}: Si existe una refutación SLD de $P \cup \set{G}$ con la
+estrategia de antes, entonces es insatisfactible.
+
+\textbf{Completitud}: Si $P \cup \set{G}$ es insatisfactible, entonces existe
+una refutación SLD con la estrategia de antes a partir del él.
+
+\subsection{Refuctaciones SLD en Prolog}
+
+Prolog recorre el árbol SLD en \textbf{profundidad} (hace DFS). La ventaja es
+que puede ser implementado de manera muy eficiente,
+
+\begin{itemize}
+    \item Se usa una \textbf{pila} para representar los átomos del goal
+    \item Se hace \textbf{push} del resolvente del átomo del tope de la pila con
+    la cláusula de definición
+    \item Se hace \textbf{pop} cuando el átomo del tope de la pila no unifica
+    con ninguna cláusula de definición más. Luego, el átomo que queda en el tope
+    se unifica con la siguiente cláusula de definición.
+\end{itemize}
+
+Pero tiene como desventaja que puede que no encuentre una resolución SLD aún si
+existe.
+
+\subsection{Aspectos extra lógicos}
+
+Dos temas de Prolog que trascienden la lógica subyacente:
+
+\begin{enumerate}
+    \item \textbf{Cut}: No permiten controlar como se crea el árbol de
+    resolución (podarlo o hacerlo más eficiente)
+    \item Deducción de información negativa, negation as failure
+    (\textbf{negación por falla}): cómo podemos inferir información sobre cosas
+    que \textit{no} pasan
+\end{enumerate}
+
+\subsubsection{Cut}
+
+Es un predicado 0-ario \changed{\textbf{!}} que solo tiene éxito la primera vez
+que se lo invoca (no podes pasar de vuelta por ahí, limita las opciones de
+backtracking). Brinda un mecanismo de control que permite hacer
+\textit{prunning} del árbol SLD (podar).
+
+Es extra lógico (no se corresponde con un predicado estándar de LPO), y está por
+cuestiones de eficiencia. Pero hay que tener cuidado, porque puede podarse una
+rama de éxito deseada.
+
+\begin{example*}Ejemplo de cut
+\begin{minted}{prolog}
+    p(a).
+    p(b).
+    p(c).
+    q(a, e).
+    q(a, f).
+    q(b, f).
+
+    % Consultas
+
+    ?- p(X).
+    X = a; X = b; X = c;
+    no
+
+    ?- p(X), !.
+    X = a;
+    no
+    % p(X) va a resolver a cut, que la primera vez tiene éxito, pero elimina
+    % las posibilidades de hacer backtracking por lo que no puede resolver p(X)
+    % para otros X.
+
+    ?- p(X), q(X, Y).
+    X = a, Y = e;
+    X = a, Y = f;
+    X = b, Y = f;
+    no
+
+    ?- p(X), !, q(X, Y).
+    X = a, Y = e;
+    X = a, Y = f;
+    no
+    % Acá es lo mismo, pero la resolvente es !, q(X, Y), porque lo que se puede
+    % hacer backtracking qué resolver q(X, Y), pero no sobre qué resolver p(X)
+\end{minted}
+\end{example*}
+
+\begin{example*}Otro ejemplo
+    \begin{minted}{prolog}
+    p(a).
+    p(b).
+    p(c).
+    q(a, e).
+    q(a, f).
+    q(b, f).
+    r(X, Y) :- p(X), !, q(X, Y).
+
+    % Consultas
+
+    ?- r(X, Y).
+    X = a, Y = e;
+    X = a, Y = f;
+    no
+
+    ?- p(X), r(X, Y).
+    X = a, Y = e;
+    X = a, Y = f;
+    X = b, Y = f;
+    no
+    % No mata las opciones del p(X) de "arriba".
+    % Podas la rama de la cláusula definición donde aparece el cut, pero no
+    % de más arriba.
+    \end{minted}
+    
+\end{example*}
+
+Esto funciona así porque \textbf{las ramas que se podan son la de la cláusula de
+definición donde aparece el cut, pero no de más arriba}.
+
+\begin{nota}
+    Por ej. si tenemos \texttt{p(X), s(Y), !, q(X, Y)} (suponiendo que s(e),
+    s(f)) el ! también cortaría esas posibilidades.
+    \begin{minted}{prolog}
+    ?- p(X), s(Y), q(X, Y).
+    X = a, Y = e ;
+    X = a, Y = f ;
+    X = b, Y = f ;
+    false.
+
+    ?- p(X), s(Y), !, q(X, Y).
+    X = a, Y = e ;
+    false.
+    \end{minted}
+\end{nota}
+
+\begin{example*}
+    Definición de max
+    \begin{minted}{prolog}
+    max1(X, Y, Y) :- X =< Y.
+    max1(X, Y, X) :- X > Y.
+
+    % Consulta
+    ?- max1(3, 4, Z).
+    Z = 4;
+    false. % No queremos que pruebe más!
+    \end{minted}
+
+    es ineficiente, porque puede intentar de buscar más soluciones. Uno puede
+    usar cut para sacarse de encima este problema.
+
+    \begin{minted}{prolog}
+    max2(X, Y, Y) :- X =< Y, !.
+    max2(X, Y, X) :- X > Y.
+
+    % Consulta
+    ?- max2(3, 4, Z).
+    Z = 4.
+    \end{minted}
+
+    otra opción más,
+
+    \begin{minted}{prolog}
+    max3(X, Y, Y) :- X =< Y, !.
+    max3(X, Y, X).
+
+    % Consulta
+    ?- max3(3, 4, Z).
+    Z = 4.
+
+    % Pero no es válido, porque acá devuelve true de una en vez de ver la otra
+    ?- max2(2, 3, 2).
+    true. % pero es falso esto
+    % no puede unifcar con la primera, entonces unifica con la 2da de una.
+    \end{minted}
+\end{example*}
+
+En general,
+
+\begin{itemize}
+    \item Cuando se selecciona un cut, tiene éxito inmediatamente
+    \item Si debido al backtracking se vuelve a ese cut, su efecto es hacer
+    fallar el goal que le dio origen. (el goal que unificó con la cabeza de la
+    cláusula que \textbf{contiene} al corte y que hizo que esa cláusula se
+    activara)
+    \item El efeto obtenido es el de \textbf{descartar soluciones} (no dar más)
+    de
+    \begin{enumerate}
+        \item otras cláusulas del goal padre
+        \item cualquier goal que ocurre a la izquierda del corte en la cláusula
+        que contiene el corte
+        \item todos los objetivos intermedios que se ejecutaron durante la
+        ejecución de los goals precedentes.
+    \end{enumerate}
+\end{itemize}
+
+\subsubsection{Not - Negación por falla}
+
+En cláusulas de Horn no hay una forma directa de escribir negaciones. Si uno las
+traduce, significan que un hecho es true.
+
+Dado un árbol SLD, podemos tener ramas de falla. Si tenemos un árbol que falla
+\textbf{finitamente} (tiene ramas de falla finitas y no tiene ramas de éxito)
+
+Dado un programa P el \textbf{conjunto de falla finita} de P es
+\[
+    \set{B \mid B \text{ es átomo cerrado ('ground') y existe un árbol SLD que falla finitamente con B como raíz}}
+\]
+
+Un átomo cerrado es uno que no tiene variables, por ej. $P(a)$ a dif de $P(x)$.
+
+Infiere la regla de negation as failure
+\[
+    \resol
+    {
+        \text{$B$ átomo cerrado}
+        \quad
+        \text{$B$ en conjunto de falla finita de $P$}
+    }
+    {\neg B}
+\]
+
+Esto en prolog se implementa con el \textbf{predicado not},
+\begin{minted}{prolog}
+not(G) :- call(G), !, fail.
+not(G).
+\end{minted}
+
+not(G) matchea con el primero. Llamá a G. Si encontraste algo en tu base de
+conocimiento que lo resuelve, cortá (cut) y fallá. Pero si no encontraste nada,
+el primero falla, y la 2da definición da true.
+
+En otras palabras, si tenés éxito fallás y si fallás tenés éxito.
+
+\begin{example*}
+    Podemos deducir \texttt{not(student(mary))} y \texttt{not(student(anna))} a
+    partir de
+    \begin{minted}{prolog}
+    student(joe).
+    student(bill).
+    student(jim).
+    teacher(mary).
+    \end{minted}
+\end{example*}
+
+Pero negación por falla \textbf{no es la negación lógica}
+
+\begin{example*} Por ejemplo
+    \begin{minted}{prolog}
+    animal(perro).
+    animal(gato).
+    vegetal(X) :- not(animal(X)).
+    \end{minted}
+
+    La consulta \texttt{vegetal(perro)} da no como se espera, idem
+    \texttt{vegetal(pasto)} que da si.
+    
+    Pero \texttt{vegetal(X)} da falso. (porque no es un átomo cerrado).
+\end{example*}
+
+Para que estos predicados funcionen, es necesario que esté instanciado lo que
+quiero negar. El goal \texttt{not(G)} \textbf{nunca instancia variables} de $G$.
+
+\begin{itemize}
+    \item Si G tiene éxito, \texttt{fail} falla y descarta la sustitución
+    \item Caso contrario, \texttt{not(G)} tiene éxito inmediatamente (sin
+    afectar ni contrar sustituciones para G).
+\end{itemize}
+
+por lo tanto, \texttt{not(not(animal(X)))} no es equivalente a
+\texttt{animal(X)}, da true.
+
+\begin{nota}
+    Porque
+    \begin{verbatim}
+    not(not(animal(X)))
+    (G = not(animal(X)))
+    not(animal(X)), !, fail
+    \end{verbatim}
+    y como \texttt{not(animal(X))} da false, el G de arriba falló, y not tenía
+    éxito cuando G fallaba, por lo que el not de arriba tiene éxito y el
+    resultado total es \texttt{true}.
+\end{nota}
+
+\begin{example*} Otro ejemplo
+    \begin{minted}{prolog}
+    firefighter_candidate(X) :-
+        not(pyromaniac(X)),
+        punctual(X).
+    pyromaniac(attila).
+    punctual(jeanne_d_arc).
+
+    firefighter_candidate2(X) :-
+        punctual(X),
+        not(pyromaniac(X)).
+    
+    ?- firefighter_candidate(W).
+    false.
+    
+    ?- firefighter_candidate2(W).
+    W = jeanne_d_arc.
+    \end{minted}
+
+    El resultado de \texttt{firefighter\_candidate(W)} es false, porque estoy
+    llamando al \texttt{not} sin el X instanciado. En cambio, en
+    \texttt{firefighter\_candidate2(W)} como primero instancia el X con punctual,
+    el not se llama con X instanciado y funciona como es esperado
+\end{example*}
 
 \end{document}
 
