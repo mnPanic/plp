@@ -1,5 +1,11 @@
 # Finales
 
+Links:
+
+- [Gdoc con resueltos](https://docs.google.com/document/d/1o5P-UkgM4Eq9K6ESD9aSqnzXsrl9NAYivCugw4qGgME/edit#)
+- [PDF con resueltos de cubawiki](https://www.cubawiki.com.ar/images/8/87/Plp-final-orales.pdf)
+- [Repaso de prototipos en js](https://www.youtube.com/watch?v=DQ40dC4Z8i4&ab_channel=ParadigmasdeLenguajesdeProgramaci%C3%B3n)
+
 ## Jess verano 2022
 
 - Haskell

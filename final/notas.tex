@@ -389,6 +389,30 @@ secuencia de argumentos "simples". Ventajas:
     izquierda). \texttt{suma 1 2 = ((suma 1) 2)}
 \end{itemize}
 
+\begin{nota}
+    Por ejemplo, si definimos
+    \begin{minted}{haskell}
+    add (x, y) = x + y
+    \end{minted}
+    no está currificada, ya que recibe sus argumentos todos juntos. En cambio,
+    \begin{minted}{haskell}
+    add x y = x + y
+    \end{minted}
+    si está currificada.
+
+    Esto es porque escribir \texttt{add x y = x + y} es una conveniencia, pero 
+    lo que en realidad pasa por debajo es
+    
+    \begin{minted}{haskell}
+        add x y = x + y
+        add x = \y -> x + y
+        add = \x -> (\y -> x + y)
+    \end{minted}
+
+    De esa forma, cada aplicación de un argumento devuelve una función, que
+    podría ser aplicada de vuelta o no (y ahí tenemos aplicación parcial)
+\end{nota}
+
 \textbf{curry y uncurry}
 
 En criollo: una equivalencia entre una func con muchos parametros (una tupla) y
@@ -428,7 +452,7 @@ en el orden en el que están escritos.
 
 \begin{minted}[]{haskell}
     esCuadrado :: Figura -> Bool
-    -- No vale esto?
+    -- También vale esto
     -- esCuadrado (Rectangulo x y) = (x == y)
     esCuadrado (Rectangulo x y) | (x==y) = True
     esCuadrado _ = False
@@ -588,10 +612,12 @@ Si dos expresiones son iguales, denotan el mismo valor bajo el mismo contexto.
 
 \subsection{Folds}
 
-\subsubsection{\texttt{foldr}}
+\subsubsection{foldr}
 
 \begin{minted}[]{haskell}
 -- Funciones sobre listas
+-- Motivación: Como estas funciones cambian la forma de lo que devolvemos, no lo
+-- podemos hacer con map o filter.
 
 -- sumaL: suma de todos los valores de una lista de enteros
 sumaL :: [Int] -> Int
@@ -634,7 +660,17 @@ sumaLong :: [Int] -> (Int, Int)
 sumaLong = foldr (\x (rl, rn) -> (rl + 1, rn + x)) (0, 0)
 \end{minted}
 
-\subsubsection{\texttt{recr}}
+Definición de \texttt{++}
+\begin{minted}{haskell}
+    (++) :: [a] -> [a] -> [a]
+    xs ++ ys = foldr (:) ys xs
+\end{minted}
+
+\begin{center}
+    \includegraphics[scale=0.6]{img/funcional/foldr.png}
+\end{center}
+
+\subsubsection{recr}
 
 \begin{minted}[]{haskell}
 -- dropWhile
@@ -648,22 +684,44 @@ dropWhile even [2, 4, 1, 6] = [1, 6]
 -- drop while cuando se termina de cumplir devuelvo todo lo que viene "a la
 -- derecha", pero cuando hago fold, lo que está a la derecha ya pasó por la
 -- recursión.
+-- Para poder hacerlo con foldr, nos guardamos la lista además de la recursión y
+-- en cada paso decidimos si quedarnos con la recursión (cosas dropeadas) o la
+-- lista original
+
+dropWhile' :: (a -> Bool) -> [a] -> ([a], [a])
+dropWhile' p = foldr f ([], [])
+    where f = (\x, (rs, os) -> if p x then rs else x: os)
 
 dw p = first $ (foldr (\x (r1, r2)
     -> (if p x then r1 else x: r2, x: r2 ) ), ([], []))
 
--- Otro esquema más poderoso
+\end{minted}
+
+Podemos otro esquema más poderoso: \textbf{recursión primitiva}. En cada paso,
+tengo acceso a la lista no modificada y la modificada.
+
+\begin{minted}{haskell}
+-- esquema
 g :: [a] -> b
 g [] = z
 g (x:xs) = f x xs (g xs)
 
+{-
+g [1, 2, 3]
+= f 1 [2, 3] (g [2, 3])
+= f 1 [2, 3] (f 2 [3] (g [3]))
+= f 1 [2, 3] (f 2 [3] (f 3 [] (g [])))
+= f 1 [2, 3] (f 2 [3] (f 3 [] z))
+-}
+
 recr :: b -> (a -> [a] -> b -> b) -> [a] -> b
 recr z _ [] = z
-recr z f (x:xs) = f x xs (rec z f xs)
+recr z f (x:xs) = f x xs (recr z f xs)
 
+-- Con esto podemos reescribir dropWhile sin hacer nada raro
 dropWhile p = recr [] (\x xs rec -> if p x then rec else x:xs)
 
--- foldr en terminos de recr?
+-- foldr en terminos de recr? Alcanza con ignorar xs
 foldr f z = recr z (\x xs rec -> f x rec)
 
 -- recr en términos de foldr?
@@ -671,9 +729,16 @@ recr z f = first $
     foldr
         (\x (rs1, rs2) -> (f x rs2 rs1, x:rs2))
         (z, [])
+
+recr z f = foldr f (z, [])
+    where f = (\x, (rec, xs) -> f x xs rec)
 \end{minted}
 
-\subsubsection{\texttt{foldl}}
+\subsubsection{foldl}
+
+\begin{center}
+    \includegraphics[scale=0.6]{img/funcional/foldl.png}
+\end{center}
 
 \begin{minted}[]{haskell}
     foldl :: (b -> a -> b) -> b -> [a] -> b
@@ -690,6 +755,9 @@ reverse = foldl (flip (:)) []
 
 Y uno en términos del otro? \textit{Me falta repasar esto porque estaba matado,
 min 2:35:10 del video}
+
+En listas infinitas, foldl se traba y foldr no. Esto es porque para terminar de
+evaluar, foldl tiene que llegar hasta el final de la lista.
 
 \subsubsection{Fold sobre estructuras algebrácias}
 
@@ -721,6 +789,9 @@ foldA f g (Nodo x izq der) = g x (foldA f g izq) (foldA f g der)
 
 sumaA = foldA id (\x rizq rder -> x + rizq + rder)
 contarHojas = foldA 1 (\x rizq rder -> rizq + rder)
+
+-- Por los tipos de los constructores, también podemos hacer la identidad
+idA = foldrA (Hoja) (Nodo)
 
 -- Arboles generales
 data AG = NodoAG a [AG a]
