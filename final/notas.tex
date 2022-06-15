@@ -423,15 +423,17 @@ una funcion equivalente que va tomando de a uno y devuelve funciones.
     curry :: ((a, b) -> c) -> (a -> (b -> c))
     curry f a b = f (a, b)
 
-    suma x y = x + y
-    suma' :: (Int, Int) -> Int
+    suma x y = x + y -- currificada
+    suma' :: (Int, Int) -> Int -- no currificada
     suma' (x, y) = x + y
 
     curry suma' 1 2 = suma' (1, 2)
     curry suma' :: (Int -> (Int -> Int))
 
-    uncurry :: (a -> b -> c) -> ((a -> b) -> c)
+    uncurry :: (a -> b -> c) -> ((a, b) -> c)
     uncurry f (a, b) = f a b
+    -- es lo mismo que
+    -- uncurry f = (\(a, b) -> f a b)
 \end{minted}
 
 \subsection{Pattern matching}
@@ -2283,7 +2285,7 @@ Sea el término $M$
 En
 
 \[
-    \uletin{suma}{\fix{M}}{suma\ \num{2}\ num{3}}
+    \uletin{suma}{\fix{M}}{suma\ \num{2}\ \num{3}}
 \]
 
 \subsubsection{Letrec}

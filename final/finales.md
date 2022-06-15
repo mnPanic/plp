@@ -4,7 +4,6 @@ Links:
 
 - [Gdoc con resueltos](https://docs.google.com/document/d/1o5P-UkgM4Eq9K6ESD9aSqnzXsrl9NAYivCugw4qGgME/edit#)
 - [PDF con resueltos de cubawiki](https://www.cubawiki.com.ar/images/8/87/Plp-final-orales.pdf)
-- [Repaso de prototipos en js](https://www.youtube.com/watch?v=DQ40dC4Z8i4&ab_channel=ParadigmasdeLenguajesdeProgramaci%C3%B3n)
 
 ## Jess verano 2022
 
@@ -203,3 +202,78 @@ De lógica: not(P(X)), cuando falla, cuando no. Si el árbol de resolución es i
 bombero(tomi).
 
 
+#### Si definieras elem :: a -> [a] -> Bool con fix, como un fix M, que tipo tiene M ?
+
+fix (\f: s . M) = M {f <- fix \f: s. M}
+
+la regla de tipado de fix nos pide que lo que le pasamos sea s -> t
+
+M : t -> t
+--
+fix M: t
+
+entonces para que elem sea fix M y tenga tipo a -> [a] -> Bool, M tiene que
+tener tipo ((a -> [a] -> Bool) -> (a -> [a] -> Bool))
+
+M = \f: a -> [a] -> Bool .
+  \x: a .
+    \l: [a] .
+      if isEmpty l then false
+      else if head l == x then true
+      else f x (tail l)
+
+let elem: (a -> [a]) -> Bool = fix M in elem 2 [1, 2, 3]
+
+fix M 2 [1, 2, 3]
+(\x: a .
+    \l: [a] .
+      if isEmpty l then false
+      else if head l == x then true
+      else (fix M) x (tail l)) 2 [1, 2, 3]
+
+#### Dados los tipos (Ref tau) − > Bool,  (Sink tau) − > Bool. Alguno es subtipo del otro?
+
+```
+se tiene
+
+Ref t <: Sink t
+
+y a -> b <: a' -> b' si
+
+a' <: a (contravariante)
+b <: b' (covariante)
+
+por lo tanto
+
+(Sink tau) −> Bool <: (Ref tau) −> Bool
+
+```
+
+#### Cómo definirías el algoritmo de inferencia para la siguiente regla?
+
+```
+G, x : s > M : t    G, x : t > M : s
+--------------------------------------
+G > x + M : (s, t)
+```
+
+#### Cómo definirías el algoritmo de inferencia para la siguiente regla?
+
+```
+Gamma > M : tau     Gamma, x: tau > N : sigma
+------------
+Gamma > M * N : sigma
+```
+
+#### Definir con fix la función 'esPar'
+
+```
+M = \f: Int -> Bool .
+  \n: Int .
+    if isZero(n) then True
+    else !f(pred(n))
+
+let esPar: Int -> Bool = fix M in esPar 3
+```
+
+#### Que problema hay con definir la regla de semántica de "fix f -> f fix f" (lease f como un lambda)
