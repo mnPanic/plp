@@ -257,13 +257,24 @@
 
 \author{Manuel Panichelli}
 \title{Notas para final de PLP}
-\date{\today\\v0.1}
+\date{\today\\v1.0}
 
 \begin{document}
 
 \maketitle
 
 \tableofcontents
+
+\chapter*{Prefacio}
+
+Este es un apunte para el final de Paradigmas de Programación que preparé para
+rendir en la fecha de Julio 2022 (durante el cuatri). Tiene casi todo el
+contenido de las diapositivas de las clases de Diego del 1c2021, además de notas
+que fui agregando de las cosas que decía y aclaraciones que fuí descubriendo
+mientras hacía ejercicios para el final.
+
+Demás está decir que seguro tenga varios errores, que pueden ser tanto
+sintácticos como conceptuales, pero lo podemos ir mejorando.
 
 \chapter{Paradigma funcional}
 
@@ -817,7 +828,7 @@ variante tipada (Church, 1941.)
 
 La máquina de turing es más de estado, y este con reducción de expresiones.
 
-\begin{definition}[Tipos]
+\begin{definition}[Tipos]\label{sec:func-lambdab-tipos}
     Las \textbf{expresiones de tipos} (o tipos) de $\lambdab$ (lambda cálculo b
     de booleano) son
 
@@ -1525,8 +1536,7 @@ Juicio de evaluación en un paso
         {\reduce{\iszero{M_1}}{\iszero{M_1'}}}
 \]
 
-Además de los juicios de evaluación de un paso de $\lambdab$ \todo{Agregar
-referencia}
+Además de los juicios de evaluación de un paso de $\lambdab$ (\fullref{sec:func-lambdab-tipos})
 
 \subsection{$\lambdareg$ - Registros}\label{sec:lambda-reg}
 
@@ -1668,7 +1678,7 @@ Su utilidad principal es en lenguajes con efectos laterales. Porque en ellos es
     $V_1$, y luego evaluar $M_2$.
     \item Como no hay apariciones libres de $x$ en $M_2$, se evalúa $M_1$ y
     luego $M_2$. Este comportamiento se logra con las reglas de evaluación
-    definidas previamente. \todo{Agregar referencia}
+    definidas previamente.
 \end{itemize}
 
 \subsection{Referencias}
@@ -1941,7 +1951,7 @@ que sean usadas por los programadores.
         &\mid \changed{l}
 \end{align*}
 
-\todo{Juntar esto para que quede todos los términos juntos y redactado de una forma que la tire de una en vez de ir explorando.}
+\todo{Estaría bueno juntar esto para que quede todos los términos juntos y redactado de una forma que la tire de una en vez de ir explorando.}
 
 \subsubsection{Juicios de tipado}
 
@@ -2155,13 +2165,13 @@ Tenemos que reformularla en el marco de \textit{referencias}.
 
 \subsubsection{Ejemplos}
 
-\todo{copiar}
+\todo{Falta copiar ejemplos:}
 
-succ y refs
+Succ y refs
 
-let in
+Let in
 
-ejemplo de que no todo termina
+Ejemplo de que no todo termina
 
 \textbf{Importante}: No todo término cerrado y bien tipado termina en
 $\lambda^{bnr}$ (booleanos, naturales y registros).
@@ -2266,10 +2276,11 @@ $M$ tiene tipo $\tfunc{(\tfunc{Nat}{Nat})}{(\tfunc{Nat}{Nat})}$. En
                 }}
               }
             }
-    }
+    }\\
+    &\reduces \dots
 \end{align*}
 
-\todo{seguir}
+\todo{Falta seguir con la reducción}
 
 \subsubsection{Ejemplo: Suma}
 
@@ -5163,9 +5174,7 @@ Este resultado establece la corrección y completitud del método de resolución
 
 \begin{nota}
     En LPO no es tan bueno. Si encuentra una refutación significa que es
-    insatisfacible (correcto) pero puede pasar que no la encontremos
-    (incompleto).
-    \todo{Validar que esté bien el uso de correcto e incompleto}.
+    insatisfacible pero puede pasar que no la encontremos
 \end{nota}
 
 \subsubsection{Resumen del algoritmo}
@@ -5995,7 +6004,38 @@ donde $\sigma$ es el MGU de $\set{B, D}$.
     Intentemos de refutar con la regla binaria
     $\set{\set{P(x), P(y)}, \set{\no{P(v)}, \no{P(w)}}}$
 
-    \todo{Por qué no se puede? No aparece en el video :(}
+    \begin{enumerate}
+        \item $\set{P(x), P(y)}$
+        \item $\set{\no{P(v)}, \no{P(w_1)}}$
+        \item (1 y 2) $\set{P(y), \no{P(w_2)}}$ con $\sigma = \set{\sust{x}{v}}$
+        \item (3 y 2) $\set{\no{P(w_1)}, \no{P(w_2)}}$
+        con $\sigma \set{\sust{y}{v}}$
+        \item $\dots$
+    \end{enumerate}
+
+    Sin importar cuales resolvamos, siempre nos quedan 2 cláusulas y nunca
+    termina.
+
+    \begin{nota}
+    Notar que la razón por la cual se hace el renombre de $w$ a $w_1$ y
+    $w_2$ es porque por la definición de Forma Clausal para primer orden,
+    (\fullref{sec:logico:resol-lpo:clausal}) cada cláusula está cuantificada
+    universalmente por separado. De esa forma se pueden hacer los renombres para
+    que no haya conflictos.
+
+    Acá me adelanto, un ejemplo podría ser si tenemos dos definiciones en prolog
+    \begin{minted}{prolog}
+    p(X) :- q(X).
+    r(X) :- s(X).
+    % se puede reescribir como
+    p(X) :- q(X).
+    r(Y) :- s(Y).
+    \end{minted}
+
+    no es la misma X en ambas cláusulas, sino que se trata de una variable
+    diferente que puede unificar a cosas diferentes.
+    \end{nota}
+
 \end{example*}
 
 Una forma de arreglarlo es con una regla adicional de \textbf{factorización} que
@@ -6557,7 +6597,7 @@ $\sigma = \set{\sust{X}{diane}}$
 Puede que la sustitución respuesta asigne valores a variables intermedias que
 surgieron en el proceso de búsqueda de una refuctación.
 
-Secuencia SLD:
+Secuencia SLD (mía):
 
 \begin{enumerate}
     \item $\set{hijo(fred, sally)}$
@@ -6581,8 +6621,9 @@ Secuencia SLD:
     $\sigma = \set{\sust{B}{diane}}$
     \item $\changed{\emptyCl}$
     
-    \todo{Acá no estoy seguro de como es, pero supongo que como $john = diane$
-    es falso queda la cláusula vacía}
+    \todo{Acá no estoy seguro de cómo se debería tratar formalmente el $=$, pero
+    supongo que como $john = diane$ es falso se puede resolver y queda la
+    cláusula vacía}
 \end{enumerate}
 
 la sustitución resultado es
