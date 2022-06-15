@@ -1,0 +1,29 @@
+
+1. P(1)
+2. P(2)
+3. no P(x)
+4. (1 y 3) []
+    x = 1
+
+4'. (1 y 2) []
+    x = 2
+
+P => Q sii no P o Q
+
+P(1) y P(2) => V x. P(x) univ valido
+
+no (P(1) y P(2) => V x. P(x))
+no ( no (P(1) y P(2)) o V x. P(x))
+( P(1) y P(2) y no V x. P(x))
+( P(1) y P(2) y E x. no P(x))
+skolemizar
+( P(1) y P(2) y no P(c_x))
+{ {P(1)}, {P(2)}, {no P(c_x)}}
+
+def
+B :- A1, A2, A3
+{B, ¬A 1 , . . . , ¬A n } (cláusula de definición)
+B o no A1 o no A2 o no A3
+= B o no (A1 y A2 y A3)
+= no (A1 y A2 y A3) o B
+= (A1 y A2 y A3) => B

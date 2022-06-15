@@ -1,3 +1,9 @@
 - Currificación de funciones
 
     https://www.youtube.com/watch?v=psmu_VAuiag
+
+- Por qué resolución lineal es completo
+
+    https://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
+
+- Cut y not https://www.cse.iitb.ac.in/~cs206/lecs/lec17.pdf

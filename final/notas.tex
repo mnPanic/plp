@@ -3001,6 +3001,19 @@ Sea $\infer{U} = \Gtipa{M}{\rho}$. Tenemos dos posibilidades,
     \]
 \end{itemize}
 
+\begin{nota}
+    Por lo general va a ser el primer caso, que $\Gamma$ venga con algún tipo
+    para $x$. Por ejemplo si tenemos
+    $$\uabs{x}{\iszero{x}}$$
+    aplicar inferencia sobre $\iszero{x}$ nos va a dar
+    $$\infer{\iszero{x}} = \tipa{\{x: Nat\}}{\iszero{x}}{Bool},$$
+    por lo que
+    $$\infer{\uabs{x}{\iszero{x}}} = \tipa{\emptyset}{\abs{x}{\select{Nat}}{\iszero{x}}}{Bool}.$$
+
+    Se daría el segundo caso si en el cuerpo de la abstracción no se usa, por
+    ejemplo para $\uabs{x}{iszero(\num{0})}$
+\end{nota}
+
 \subsubsection{Inferencia de fix}
 
 Sean $\infer{U} = \Gtipa{M}{\tau}$, $S = \mgu{\tau}{\tfunc{t}{t}}$ con $t$ una
@@ -6768,6 +6781,39 @@ En general,
     \end{enumerate}
 \end{itemize}
 
+\begin{nota}
+    Otra forma de verlo, sacada de
+    \href{https://www.cse.iitb.ac.in/~cs206/lecs/lec17.pdf}{CS206 Lecture 16}.
+
+    El \textbf{Goal padre} (\textit{parent goal}) es el goal que matcheo con la
+    cabeza de la cláusula que contiene el cut.
+
+    Cuando un cut es encontrado, se \textbf{resuelve} inmediatamente.
+
+    El \textbf{efecto} del cut es que el sistema se comprometa (\textit{commit})
+    a todas las elecciones realizadas desde el momento en el que el goal padre
+    se llamó hasta que se resolvió el cut (incluyendo al goal padre). Es decir,
+    todas alternativas pendientes entre el goal padre y el cut se descartan.
+
+    Por ejemplo, si tenemos
+
+    \begin{minted}{prolog}
+    C :- P, Q, R, !, S, T, U.
+    C :- V.
+    A :- B, C, D.
+    \end{minted}
+
+    Cuando se intenta de resolver A, intentamos C luego de obtener la primera
+    solución para B. Acá se resuelven de a una P, Q, R y se encuentra el cut,
+    que se resuelve inmediatamente. En este momento la resolución se
+    "compromete" a las elecciones realizadas para P, Q y R y no va a
+    backtrackear para buscar otras. Tampoco va a intentar matchear C con otra
+    cabeza, por ejemplo \texttt{C :- V}. Pero si va a devolver todas las nuevas
+    respuestas obtenidas de S, T y U.
+
+    El cut es invisible a A, y todas las opciones de B y D se van a probar.
+\end{nota}
+
 \subsubsection{Not - Negación por falla}
 
 En cláusulas de Horn no hay una forma directa de escribir negaciones. Si uno las
@@ -6796,7 +6842,7 @@ Infiere la regla de negation as failure
 
 Esto en prolog se implementa con el \textbf{predicado not},
 \begin{minted}{prolog}
-not(G) :- call(G), !, fail.
+not(G) :- G, !, fail.
 not(G).
 \end{minted}
 
@@ -6805,6 +6851,16 @@ conocimiento que lo resuelve, cortá (cut) y fallá. Pero si no encontraste nada
 el primero falla, y la 2da definición da true.
 
 En otras palabras, si tenés éxito fallás y si fallás tenés éxito.
+
+\begin{nota}
+    Es importante que not(G) contenga cut (!). De no ser así, siempre devolvería
+    true, ya que aunque falle para la primera luego resolvería por la segunda.
+
+    Se puede probar implementando
+    \begin{minted}{haskell}
+        not2(G) :- G, fail
+    \end{minted}
+\end{nota}
 
 \begin{example*}
     Podemos deducir \texttt{not(student(mary))} y \texttt{not(student(anna))} a
