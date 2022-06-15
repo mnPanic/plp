@@ -5,3 +5,8 @@
 *.fls
 *.log
 *.synctex.gz
+*.out
+*.pyg
+*_minted*/
+*.toc
+*.synctex(busy)
