@@ -1901,9 +1901,9 @@ l_i \in \mathcal{L}$ para representar referencias. Una \textbf{memoria} o
 \textbf{valores}. Notación
 
 \begin{itemize}
-    \item \textbf{Reescribir}: $\mustore{l}{V}$ es el store resultante de \textbf{pisar} $\mu(I)$ con $V$.
+    \item \textbf{Reescribir}: $\mustore{l}{V}$ es el store resultante de \textbf{pisar} $\mu(l)$ con $V$.
     \item \textbf{Extender}: $\emustore{l}{V}$ es el \textbf{store extendido} resultante de ampliar
-    $\mu$ con una nueva asociación $I \mapsto V$ (asumiendo $I \notin Dom(\mu)$).
+    $\mu$ con una nueva asociación $l \mapsto V$ (asumiendo $l \notin Dom(\mu)$).
 \end{itemize}
 
 Y las reducciones ahora toman la forma
@@ -2008,7 +2008,6 @@ Juicios de evaluación en un paso. Ahora van a tener la pinta
             {\dealloc{M_1'}}{\mu'}
         }\qquad
     \deriv{E-DerefLoc}
-        {\mematSet{\mu}{l}{\changed{V}}}
         {\mematSet{\mu}{l}{\changed{V}}}
         {\sreduce
             {\dealloc{l}}{\mu}
@@ -2129,7 +2128,7 @@ Tenemos que reformularla en el marco de \textit{referencias}.
     Reformulamos la preservación como
     \[
         \GStipa{M}{\sigma}
-        \text{ y } \sreduce{M}{\mu}{N}{\mu'}{\mu}
+        \text{ y } \sreduce{M}{\mu}{N}{\mu'}
         \text{ y } \select{\GSCompat{\mu}}
         \text{ entonces } \GStipa{N}{\sigma}
     \]
