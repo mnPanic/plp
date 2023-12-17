@@ -895,7 +895,7 @@ Definimos una \textbf{relación de tipado} en base a reglas de inferencia.
     \item Los \textbf{axiomas de tipado} establecen que ciertos \textbf{juicios
     de tipado} son derivables.
     \item Las \textbf{reglas de tipado} establecen que ciertos \textbf{juicios
-    de tipado} son derivables siempre y cuando ceiertos otros lo sean.  
+    de tipado} son derivables siempre y cuando ciertos otros lo sean.  
 \end{itemize}
 
 \begin{definition}[Variables libres]
@@ -1009,7 +1009,7 @@ Ejemplos:
                 {T-Var}
                 {\derivok{x : Bool \in \Gamma'}}
                 {
-                    \tipa{\Gamma' = \Gamma \cap \{x : Bool\}}{x}{Bool}
+                    \tipa{\Gamma' = \Gamma \cup \{x : Bool\}}{x}{Bool}
                 }
         }
         {\Gtipa{\abs{x}{Bool}{x}}{\textcolor{blue}{\tfunc{Bool}{Bool}}}}
@@ -1056,7 +1056,7 @@ vamos a definir una \textbf{semántica operacional}.
     lenguaje, qué denota matemáticamente. Y uno define la semántica en términos
     de como las funciones van denotando cosas, con recursión o puntos fijos.
     \item Axiomática. Cuando cursamos algo1, definimos pre y pos condiciones.
-    Predicaque definen el significado de una operación. Las triplas de hoare y
+    Predicados que definen el significado de una operación. Las triplas de hoare y
     esas cosas.
     \item \textbf{Operacional} consiste en
     \begin{itemize}
@@ -1242,7 +1242,7 @@ clausura reflexiva, transitiva de $\to$. Es decir, la menor relación tal que
 \begin{proposition}[Terminación]
     Para todo $M$ existe una forma normal $N$ tal que $\reduceMany{M}{N}$.
 
-    \textit{no me quedo ciclando, en una cantidad finita de pasos llego a una forma normal.}
+    \textit{no me quedo ciclando, en una cantidad finita de pasos llego a una forma normal. N puede llegar a no ser un valor en algunos casos, eg: tiene variables libres (no es cerrada).}
 \end{proposition}
 
 \subsubsection{Extendiendo semántica operacional con funciones}
@@ -1308,7 +1308,7 @@ Juicios de evaluación en un paso (Además de E-IfTrue, E-IfFalse y E-If):
                 {\sustOne{M}{x}{\textcolor{red}{V}}}
         }
     \quad\quad
-    \text{\textit{primero reducís la función}}
+    \text{\textit{por último se hace la sustitución}}
 \]
 
 \subsubsection{Sustitución}
@@ -1409,7 +1409,7 @@ de error.
 
 \begin{definition}
     Decimos que un término \textbf{termina} o que es \textbf{fuertemente
-normalizante} si no hay cadenas de reduccioens infinitas a partir de él.
+normalizante} si no hay cadenas de reducciones infinitas a partir de él.
 \end{definition}
 
 \begin{theorem}
@@ -1797,7 +1797,7 @@ sin tipos en las let-expresiones para facilitar la lectura
             }
     \) evalúa a $\num{3}$
 
-    \todo{Por qué no así?} \(
+    \todo{Por qué no así?} \( %% Son equivalentes por definición
         \uletin
             {x}
             {\alloc{\num{2}}}
@@ -1901,9 +1901,9 @@ l_i \in \mathcal{L}$ para representar referencias. Una \textbf{memoria} o
 \textbf{valores}. Notación
 
 \begin{itemize}
-    \item \textbf{Reescribir}: $\mustore{l}{V}$ es el store resultante de \textbf{pisar} $\mu(I)$ con $V$.
+    \item \textbf{Reescribir}: $\mustore{l}{V}$ es el store resultante de \textbf{pisar} $\mu(l)$ con $V$.
     \item \textbf{Extender}: $\emustore{l}{V}$ es el \textbf{store extendido} resultante de ampliar
-    $\mu$ con una nueva asociación $I \mapsto V$ (asumiendo $I \notin Dom(\mu)$).
+    $\mu$ con una nueva asociación $l \mapsto V$ (asumiendo $l \notin Dom(\mu)$).
 \end{itemize}
 
 Y las reducciones ahora toman la forma
@@ -2008,7 +2008,6 @@ Juicios de evaluación en un paso. Ahora van a tener la pinta
             {\dealloc{M_1'}}{\mu'}
         }\qquad
     \deriv{E-DerefLoc}
-        {\mematSet{\mu}{l}{\changed{V}}}
         {\mematSet{\mu}{l}{\changed{V}}}
         {\sreduce
             {\dealloc{l}}{\mu}
@@ -2129,7 +2128,7 @@ Tenemos que reformularla en el marco de \textit{referencias}.
     Reformulamos la preservación como
     \[
         \GStipa{M}{\sigma}
-        \text{ y } \sreduce{M}{\mu}{N}{\mu'}{\mu}
+        \text{ y } \sreduce{M}{\mu}{N}{\mu'}
         \text{ y } \select{\GSCompat{\mu}}
         \text{ entonces } \GStipa{N}{\sigma}
     \]
@@ -3429,7 +3428,7 @@ Para reemplazar una función por otra, tiene que
 \end{itemize}
 
 Se dice que el constructor de tipos de función es \textbf{contravariante} en el
-primer argumento (dominio) y \textbf{variante} en el segundo (imagen).
+primer argumento (dominio) y \textbf{covariante} en el segundo (imagen).
 
 \subsection{Subtipado de referencias}
 
