@@ -274,7 +274,30 @@ que fui agregando de las cosas que decía y aclaraciones que fuí descubriendo
 mientras hacía ejercicios para el final.
 
 Demás está decir que seguro tenga varios errores, que pueden ser tanto
-sintácticos como conceptuales, pero lo podemos ir mejorando.
+sintácticos como conceptuales. No tengan miedo de tirar PRs al repo \href{https://github.com/mnPanic/plp}{mnPanic/plp}.
+
+\section*{Control de cambios}
+
+\subsection*{v1.1 - 17/12/23}
+
+En 2c2023 estuve de ayudante en PLP, fui a las teóricas y corregí algunas cosas 
+
+\begin{itemize}
+    \item Haskell: algunas aclaraciones. Interpretación sintáctica alternativa
+    de \texttt{foldr}. Nota sobre folds de estructuras algebráicas.
+    \item Cálculo lambda: fixes en typos (¡gracias
+    \href{https://github.com/facutotaro}{\texttt{@facutotaro}}!). Algunas
+    aclaraciones en semántica y tipado. Definición de forma normal.
+    \item Inferencia: Fix ejemplo composición. Caso general algortimo de
+    unificación. Nota sobre ejecución en la práctica.
+    \item Cálculo sigma: fix en clases, cambia $\lambda$ por $\varsigma$ en constructor (¡gracias \texttt{@VictoriaFiora}!)
+\end{itemize}
+
+\subsection*{v1.0 - 15/6/22}
+
+\begin{itemize}
+    \item Versión inicial
+\end{itemize}
 
 \chapter{Paradigma funcional}
 
@@ -684,10 +707,24 @@ Definición de \texttt{++}
     \includegraphics[scale=0.6]{img/funcional/foldr.png}
 \end{center}
 
+Otra forma de pensarlo\footnote{Es la forma que usa el libro Programming In
+Haskell de Graham Hutton}: reemplazar cada \textit{cons} (\texttt{:}) por
+\texttt{f}, y el \texttt{[]} del final por \texttt{z}. \textit{fold right}
+porque asume que el operador asocia \textit{a derecha}.
+
+\begin{minted}{haskell}
+foldr (+) 0
+-- se puede ver como
+1 : (2 : (3 : []))
+1 + (2 + (3 + 0))
+\end{minted}
+
 \subsubsection{recr}
 
 \begin{minted}[]{haskell}
--- dropWhile
+-- dropWhile: elimina el prefijo más largo que cumpla con el predicado
+-- la diferencia con recursión estructural es que tenemos disponible la cola
+-- original
 dropWhile :: (a -> Bool) -> [a] -> [a]
 dropWhile _ [] = []
 dropWhile p (x:xs) = if p x then dropWhile p xs else x:xs
@@ -695,12 +732,18 @@ dropWhile p (x:xs) = if p x then dropWhile p xs else x:xs
 -- ejemplo
 dropWhile even [2, 4, 1, 6] = [1, 6]
 
--- drop while cuando se termina de cumplir devuelvo todo lo que viene "a la
--- derecha", pero cuando hago fold, lo que está a la derecha ya pasó por la
--- recursión.
--- Para poder hacerlo con foldr, nos guardamos la lista además de la recursión y
--- en cada paso decidimos si quedarnos con la recursión (cosas dropeadas) o la
--- lista original
+-- No podemos hacerlo asi nomás con fold porque no tienemos disponible la cola
+-- sin recursión
+--  \x r -> if p x then r else x:?
+
+{-
+drop while cuando se termina de cumplir devuelvo todo lo que viene "a la
+derecha", pero cuando hago fold, lo que está a la derecha ya pasó por la
+recursión.
+Para poder hacerlo con foldr, nos guardamos la lista además de la recursión y
+en cada paso decidimos si quedarnos con la recursión (cosas dropeadas) o la
+lista original
+-}
 
 dropWhile' :: (a -> Bool) -> [a] -> ([a], [a])
 dropWhile' p = foldr f ([], [])
@@ -709,10 +752,13 @@ dropWhile' p = foldr f ([], [])
 dw p = first $ (foldr (\x (r1, r2)
     -> (if p x then r1 else x: r2, x: r2 ) ), ([], []))
 
+-- Nota: Una forma más fácil de pensar esto es primero hacer dropWhile' a mano,
+-- con recursión explícita (sin ningún esquema) y luego mecánicamente pasarlo a fold
+
 \end{minted}
 
 Podemos otro esquema más poderoso: \textbf{recursión primitiva}. En cada paso,
-tengo acceso a la lista no modificada y la modificada.
+tengo acceso a la lista no modificada y la modificada. Este es el que usa \texttt{dropWhile}
 
 \begin{minted}{haskell}
 -- esquema
@@ -760,7 +806,13 @@ recr z f = foldr f (z, [])
     foldl f z (x:xs) = foldl f (f z x) xs
 \end{minted}
 
-foldr = fold a la derecha, y foldl = fold a la izquierda
+foldr = fold a la derecha, y foldl = fold a la izquierda.
+Se puede pensar como que asocia el operador a izquierda
+
+\begin{minted}{haskell}
+    foldl (#) v [x0, x1, ..., xn] = (... (((v # x0) # x1) # x2) ...) # xn
+\end{minted}
+
 
 \begin{minted}[]{haskell}
 reverse = foldl (\c x -> x:c) []
@@ -771,7 +823,10 @@ Y uno en términos del otro? \textit{Me falta repasar esto porque estaba matado,
 min 2:35:10 del video}
 
 En listas infinitas, foldl se traba y foldr no. Esto es porque para terminar de
-evaluar, foldl tiene que llegar hasta el final de la lista.
+evaluar, foldl tiene que llegar hasta el final de la lista. Pero si la función
+que uno aplica con foldr depende siempre de su segundo argumento (rec) para ser
+evaluada, también se va a trabar, por ejemplo con \texttt{(+)}. Viendo el árbol
+queda más claro.
 
 \subsubsection{Fold sobre estructuras algebrácias}
 
@@ -795,7 +850,7 @@ mapA :: (a -> b) -> Arbol a -> Arbol b
 mapA f (Hoja x) = Hoja f x
 mapA f (Nodo x izq der) = Nodo (f x) (mapA f izq) (mapA f der)
 
--- Y también podemos hacer un fold
+-- Y también podemos hacer un fold (esquema de recursión estructural)
 
 foldA :: (a -> b) -> (a -> b -> b -> b) -> Arbol a -> b
 foldA f g (Hoja x) = f x
@@ -819,12 +874,26 @@ foldAG f (NodoAG a as) = f a (map (foldAG f) as)
 
 \textit{Aplicar un fold con un constructor es la identidad}.
 
+\begin{nota}{Práctica - Folds para tipos de datos algebráicos}
+
+    Para definir un esquema de recursión estructural sobre un tipo de dato
+    algebráico, en general si tenemos $n$ constructores entonces vamos a recibir
+    $n$ funciones, una para cada uno (y con la misma aridad que el constructor).
+    Para constructores que no toman argumentos (como podría ser \texttt{Nil} o \texttt{[]}) se
+    toma una constante.
+
+    Se puede generalizar la analogía de que se puede ver foldr como reemplazar
+    sintácticamente cons por la función: reemplazás cada constructor por su
+    función correspondiente. En el caso de listas, se reemplazaba cons por la
+    función binaria y el constructor base (la lista vacía) por la constante.
+\end{nota}
+
 \section{Cálculo Lambda Tipado}
 
 Es el formalismo que está detrás de la programación funcional. Es un modelo de
 cómputo basado en \textbf{funciones}, introducido por Alonzo Church en 1934. Es
-computacionalmente completo (turing completo) y nosotros vamos a estudiar la
-variante tipada (Church, 1941.)
+computacionalmente completo en su versión sin tipos (turing completo) y nosotros
+vamos a estudiar la variante tipada (Church, 1941.)
 
 La máquina de turing es más de estado, y este con reducción de expresiones.
 
@@ -885,8 +954,8 @@ La máquina de turing es más de estado, y este con reducción de expresiones.
 
 \subsection{Sistema de tipado}
 
-Es un sistema formal de deducción o derivación que utiliza axiomas y reglas de
-inferencia para caracterizar un subconjunto de los términos llamados
+Es un sistema formal de deducción lógica o derivación que utiliza axiomas y
+reglas de inferencia para caracterizar un subconjunto de los términos llamados
 \textbf{tipados}. Nos permite quedarnos con algunos y rechazar otros términos en
 base a lo que consideremos correcto.
 
@@ -1042,6 +1111,8 @@ Ejemplos:
     las variables libres de $M$, entonces $\tipa{\Gamma'}{M}{\sigma}$.
 
     \textit{Puedo agrandar o achicar el contexto de tipo siempre y cuando contenga las mismas variables libres.}
+
+    \textit{Otra: El tipo solo depende de las variables del contexto que aparecen libres en el término.}
 \end{proposition}
 
 \subsection{Semántica}
@@ -1097,6 +1168,11 @@ semántica operacional,
 
 
 \subsubsection{Semántica operacional small-step de $\lambdab$}
+
+\textbf{Importante:} A la hora de definir la semántica operacional, asumimos que
+ya pasamos por el proceso de tipado y que los términos tipan en el contexto
+vacío (i.e son términos cerrados, sin variables líbres).
+
 Además de introducir la función de transición es necesario introducir también
 los \textbf{valores}, los posibles resultados de evaluación de términos
 bien-tipados (derivables) y cerrados (sin variables libres).
@@ -1141,6 +1217,9 @@ Juicio de evaluación en un paso:
                 {\ifte{M_1'}{M_2}{M_3}}
         }
 \]
+
+Esta última es una \textbf{regla de congruencia}: "progresa" la evaluación
+reduciendo un sub-término en un paso y permite reducir un término más grande.
 
 Ejemplo de derivación
 
@@ -1202,9 +1281,10 @@ Ejemplo de derivación
     \textit{No vale el recíproco en $\lambdab$, puedo tener cosas que están en forma normal pero que no sean valores, como términos que no estén bien tipados o que no sean cerrados. Ejemplos:}
     
     \begin{itemize}
-        \item $\ifte{x}{true}{false}$: No tengo forma de reducir el x.
-        \item $x$. No tengo forma de reducirla pero no es ni true ni false
-        \item $\app{true}{false}$.
+        \item $\ifte{x}{true}{false}$: No tengo forma de reducir el x (es un término abierto).
+        \item $x$. No tengo forma de reducirla pero no es ni true ni false (no
+        es bool)
+        \item $\app{true}{false}$ (no tipa).
     \end{itemize}
     
     \textit{Pero si vale en el cálculo de las expresiones booleanas cerradas.}
@@ -1311,6 +1391,12 @@ Juicios de evaluación en un paso (Además de E-IfTrue, E-IfFalse y E-If):
     \text{\textit{por último se hace la sustitución}}
 \]
 
+Las primeras dos son \textbf{reglas de congruencia} y la última de cómputo.
+Corresponde a una evaluación \textit{call-by-value}, en donde se reduce el
+argumento y después se sustituye en el cuerpo de la función. La alternativa es
+\textit{call-by-name}, que se sustituye tal cual y luego se reduce cuando se
+necesite (potencialmente más de una vez).
+
 \subsubsection{Sustitución}
 
 La operación,
@@ -1319,8 +1405,8 @@ La operación,
     \sustOne{M}{x}{N}
 \]
 
-quiere decir \textit{"Sustituir todas las ocurrencias \textbf{libres} de x en el
-término M por el término N}. Es una operación importante que se usa para darle
+quiere decir \textit{``Sustituir todas las ocurrencias \textbf{libres} de x en el
+término M por el término N"}. Es una operación importante que se usa para darle
 semántica a la aplicación de funciones. Es sencilla de definir pero requiere
 cuidado en el tratamiento de los ligadores de variables ($\lambda x$).
 
@@ -1391,6 +1477,13 @@ se renombró de forma tal que no ocurre libre en N.
 \textit{La idea detrás es agrupar expresiones que sean semánticamente equivalentes.}
 
 \subsubsection{Estado de error}
+
+Decimos que un término está en \textbf{forma normal} si no se puede seguir
+reduciendo.
+
+\[
+    M \text{ está en FN} \iff \not\exists N .\ M \reduces N
+\]
 
 Un \textbf{estado de error} es un término que no es un valor pero en el que la
 evaluación está trabada. (Un término en forma normal que no es un valor).
@@ -1536,7 +1629,7 @@ Juicio de evaluación en un paso
         {\reduce{\iszero{M_1}}{\iszero{M_1'}}}
 \]
 
-Además de los juicios de evaluación de un paso de $\lambdab$ (\fullref{sec:func-lambdab-tipos})
+Además de las reglas de evaluación de un paso de $\lambdab$ (\fullref{sec:func-lambdab-tipos})
 
 \subsection{$\lambdareg$ - Registros}\label{sec:lambda-reg}
 
@@ -1574,10 +1667,10 @@ Ejemplos,
 \begin{itemize}
     \item $\abs{x}{Nat}{\abs{y}{Bool}{\reg{edad = x,\ esMujer = y}}}$
     \item $\abs{p}{\reg{edad: Nat,\ esMujer: Bool}}{p.edad}$
-    \item \begin{multline*}
-        (\abs{p}{\reg{edad: Nat,\ esMujer: Bool}}{p.edad})\\
+    \item \(
+        (\abs{p}{\reg{edad: Nat,\ esMujer: Bool}}{p.edad})
         \reg{edad = 20,\ esMujer = false}
-    \end{multline*}
+    \)
 \end{itemize}
 
 Tipado:
@@ -1613,13 +1706,13 @@ Semántica operacional:
             \reg{
                 l_i = V_i ^{\ \ i\in 1.. j- 1}, \
                 l_j = M_j, \
-                l_i = M_i ^{\ \ i\in j+1.. n},
+                l_i = M_i ^{\ \ i\in j+1.. n}
             }
             \\ \to\\
             \reg{
                 l_i = V_i ^{\ \ i\in 1.. j- 1}, \
                 l_j = M_j', \
-                l_i = M_i ^{\ \ i\in j+1.. n},
+                l_i = M_i ^{\ \ i\in j+1.. n}
             }    
         \end{gathered}
     }\\   
@@ -1634,6 +1727,9 @@ Semántica operacional:
         {\proj{M'}{I}}
     }
 \end{gather*}
+
+El orden de reducción de izquierda a derecha es importante para \textbf{no perder el
+determinismo} en la semántica operacional.
 
 \subsection{$\lambdabnu$ - Unit}
 
@@ -1792,7 +1888,7 @@ sin tipos en las let-expresiones para facilitar la lectura
             {x}
             {\alloc{\num{2}}}
             {\app
-                {(\abs{_}{unit}{\dealloc{x}})}
+                {(\abs{\_}{unit}{\dealloc{x}})}
                 {(\assign{x}{\suc{\dealloc{x}}})}
             }
     \) evalúa a $\num{3}$
@@ -2474,8 +2570,9 @@ expresiones de tipo. Usamos S, T, para sustituciones. Formalmente,
 $S : \tfunc{\typeVars}{\types}$. La idea de la sustitución es instanciar las
 variables de tipos en tipos concretos, por ejemplo $\tsust{s} = Int$.
 
-Solo nos interesan las $S$ tales que $\{ t \in \typeVars \mid St \neq t \}$ es
-finito (este es un detalle técnico para que no sea infinita la sustitución)
+Solo nos interesan las $S$ tales que $\{ t \in \typeVars \mid St \neq t \}$ (el
+soporte) es finito (este es un detalle técnico para que no sea infinita la
+sustitución)
 
 Se pueden aplicar a,
 
@@ -2518,7 +2615,7 @@ Notaciones
         \sigma' = \tsust{\sigma}
     \]
 
-    \textit{Es agarrar y aplicar la sust $S$ a todas las partes. $G'$ puede ser un poco más grande, tiene que incluir.}
+    \textit{Es agarrar y aplicar la sust $S$ a todas las partes. $\Gamma'$ puede ser un poco más grande, tiene que incluir.}
 \end{definition}
 
 \begin{proposition}
@@ -2611,7 +2708,7 @@ de tipos $\sigma, \tau$ son unificables (i.e $\tsust{\sigma} =
 
     \begin{example}
         Sea $S = \{ \sustfor{\tfunc{u}{Bool}}{t}, \sustfor{Nat}{s} \}$ y $T = \{
-        \sustfor{v \times Nat}{u}, \sustfor{Nat}{s} \}$ entonces $\comp{S}{T} =
+        \sustfor{v \times Nat}{u}, \sustfor{Nat}{s} \}$ entonces $\comp{T}{S} =
         \{ \sustfor{\tfunc{(v \times Nat)}{Bool}}{t}, \sustfor{v \times Nat}{u},
             \sustfor{Nat}{s}
         \}$
@@ -2643,7 +2740,7 @@ de tipos $\sigma, \tau$ son unificables (i.e $\tsust{\sigma} =
     \end{example}
 
     Lo que nos va a interesar en el algortimo es obtener el tipo o sustitución
-    más general.
+    más general. El que \textit{instancie lo menos posible}.
 \end{definition}
 
 \subsubsection{MGU}
@@ -2732,7 +2829,11 @@ Si la secuencia es exitosa, el MGU es $\comp{S_k}{\comp{\dots}{S_1}}$
 
 \textbf{Reglas}:
 
-$\sigma, \tau$ tipos concretos y $s$ var de tipo
+\newcommand{\typeConstr}{C}
+\newcommand{\typeConstrTwo}{C'}
+
+$\sigma, \tau$ tipos concretos y $s$ var de tipo. $C$ un constructor de tipos de
+cualquier aridad.
 
 \newcommand{\inferRule}[3]{ \{ \unify{#1}{#2} \} \cup G \simp #3}
 \begin{enumerate}
@@ -2747,6 +2848,19 @@ $\sigma, \tau$ tipos concretos y $s$ var de tipo
     $\inferRule{Nat}{Nat}{G}$
 
     $\inferRule{Bool}{Bool}{G}$
+
+    \textbf{\textit{Caso general}}
+
+    \(
+    \inferRule
+        {\typeConstr(\sigma_1, \dots, \sigma_n)}
+        {\typeConstr(\tau_1, \dots, \tau_n)}
+        {\{
+            \unify{\sigma_1}{\tau_1},
+            \dots,
+            \unify{\sigma_n}{\tau_n}
+        \} \cup G}
+    \)
 
     \item \textbf{Eliminación de par trivial}
     
@@ -2775,7 +2889,16 @@ $\sigma, \tau$ tipos concretos y $s$ var de tipo
         (Bool, \tfunc{\sigma_1}{\sigma_2})
     \}$
 
-    ($T^{-1}$ es invertir los pares)
+    ($T^{-1}$ es una forma sucinta de invertir los pares)
+
+    \textbf{\textit{Caso general}}: si $\typeConstr \neq \typeConstrTwo$ son constructores de tipo diferentes
+
+    \(
+        \inferRule
+            {\typeConstr(\dots)}
+            {\typeConstrTwo(\dots)}
+            {\changed{\text{falla}}}
+    \)
 
     \item \textbf{Occur check}: si $s \neq \sigma$ y $s \in FV(\sigma)$
     
@@ -2890,6 +3013,9 @@ Ejemplo de secuencia fallida
 
 \subsection{Algoritmo de inferencia}
 
+\textbf{Importante:} Tiene que implementar las reglas de tipado que \textit{ya
+existen}. No tiene que hacer nuevas.
+
 Términos simples
 
 \begin{align*}
@@ -2962,6 +3088,19 @@ Entonces
    forma arbitraria.
 \end{nota}
 
+\begin{nota}{Por qué unión de sustituciones y no sustitución de unión?}
+
+    Cuál es la diferencia entre $\tsust{\Gamma_1} \cup \tsust{\Gamma_2}$ y
+    $\tsust{(\Gamma_1 \cup \Gamma_2)}$?
+
+    Si bien el resultado final es el mismo, la segunda está \textbf{mal}, porque puede dar como resultado temporalmente
+    algo que no cumple con el invariante de un contexto de tipado.
+    
+    Por ejemplo $\{x: t\} \cup \{ x: Nat\} = \{x:t, x:Nat\}$ que tiene más de un
+    tipo para la misma variable. Luego de aplicar una sustitución pasarían a ser
+    lo mismo, por ej. $\sustfor{Nat}{t}$.
+\end{nota}
+
 \subsubsection{Inferencia de aplicación}
 
 Sean
@@ -2988,6 +3127,13 @@ entonces
         {\tsust{(\app{M}{N})}}
         {\tsust{t}}
 \]
+
+\begin{nota}
+    Es necesario aplicar la sustitución a $t$ en el tipo del término porque si
+    bien es fresca, dependiendo de como se unifique
+    $\unify{\tau}{\tfunc{\rho}{t}}$, $t$ podría pasar a ser otro tipo, por
+    ejemplo uno concreto.
+\end{nota}
 
 \subsubsection{Inferencia de abstracción}
 
@@ -3026,8 +3172,25 @@ Sea $\infer{U} = \Gtipa{M}{\rho}$. Tenemos dos posibilidades,
     $$\infer{\uabs{x}{\iszero{x}}} = \tipa{\emptyset}{\abs{x}{\select{Nat}}{\iszero{x}}}{Bool}.$$
 
     Se daría el segundo caso si en el cuerpo de la abstracción no se usa, por
-    ejemplo para $\uabs{x}{iszero(\num{0})}$
+    ejemplo para $\uabs{x}{iszero(\num{0})}$.
+
+    Otros ejemplos más sencillos para ver lo mismo son $\uabs{x}{x}$ y $\uabs{x}{true}$.
 \end{nota}
+
+Definición alternativa de la práctica, mucho más sucinta y más fácil de
+entender:
+
+$\infer{\uabs{x}{U}} = \tipa{\Gamma'}{\abs{x}{\tau_x}{M}}{\tfunc{\tau_x}{\rho}}$
+\begin{itemize}
+    \item $\infer{U} = \Gtipa{M}{\rho}$
+    \item $\Gamma' = \Gamma \ominus x$
+    \item $\tau_x = \begin{cases}
+        \alpha & \text{si } x:\alpha \in \Gamma \text{ (se usa $x$ en $U$)}\\
+        s \text{ fresca} &\text{si no}
+    \end{cases}$
+\end{itemize}
+
+No se aplica ninguna sustitución porque no unificamos nada. 
 
 \subsubsection{Inferencia de fix}
 
@@ -3074,8 +3237,13 @@ sobre la estructura sintáctica del término.
 \end{figure}
 
 \begin{nota}
-    En la clase se ejecuta el algoritmo bottom-up, cuando yo creo que sería
-    mucho más claro hacerlo top-down.
+    Para entender el algoritmo por primera vez está bueno hacerlo
+    \textbf{top-down}. Pero es más difícil de seguir para ejecutarlo de forma
+    práctica.
+
+    Para la práctica la recomendación es hacerlo \textbf{bottom-up}: numerar
+    cada nodo del árbol sintáctico de las hojas a la raiz, y luego ejecutar en
+    orden. En cada paso tenemos todos los resultados que necesitamos.
 \end{nota}
 
 \begin{itemize}
@@ -5227,8 +5395,8 @@ Para probar que $A$ es una tautología hacemos lo siguiente,
         \item Todo símbolo de predicado de aridad 0 (i.e vars proposicionales)
         es una $\LPO$-fórmulas atómica
         \item Si $t_1, \dots, t_n \in$ $\LPO$-términos y P es un símbolo de
-        predicado de aridad n, entonces $P(t_1, \dots, t?n)$ es una
-        $\LPO$-fórmulas atómica.
+        predicado de aridad n, entonces $P(t_1, \dots, t_n)$ es una
+        $\LPO$-fórmula atómica.
     \end{enumerate}
     
 \end{definition*}
@@ -5400,7 +5568,7 @@ proposicional, pero requiere tener en cuenta los \textbf{cuantificadores}
 
 \begin{enumerate}
     \item Escribir la fórmula en términos de $\vee, \wedge, \neg, \forall,
-    \exists$ (\textbf{elimilar implicación}).
+    \exists$ (\textbf{eliminar implicación}).
 
     Para esto se usa $(\impl{P}{A}) \iff (\por{\no{P}}{Q})$
 
