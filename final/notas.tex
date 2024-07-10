@@ -819,8 +819,17 @@ reverse = foldl (\c x -> x:c) []
 reverse = foldl (flip (:)) []
 \end{minted}
 
-Y uno en términos del otro? \textit{Me falta repasar esto porque estaba matado,
-min 2:35:10 del video}
+Y uno en términos del otro?
+
+\begin{minted}[]{haskell}
+foldlConFoldr f rec l = foldr g rec (reverse l)
+    where g e rec = f rec e
+\end{minted}
+
+\begin{minted}[]{haskell}
+foldrConFoldl f rec l = foldl g rec (reverse l)
+    where g rec e = f e rec
+\end{minted}
 
 En listas infinitas, foldl se traba y foldr no. Esto es porque para terminar de
 evaluar, foldl tiene que llegar hasta el final de la lista. Pero si la función
